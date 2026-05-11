@@ -1,0 +1,159 @@
+---
+title: "Troubleshooting"
+description: "Common error messages, silent failures, and how to fix them."
+---
+
+<AccordionGroup>
+
+<Accordion title="Line limit exceeded">
+**Message:** `Line limit exceeded (500). Oldest lines have been truncated.`
+
+**Cause:** Your script created more than 500 `Line` entities. With dynamic keys like `Line(\`ph_${ctx.i()}\`, ...)` on every bar, this fills up quickly on large bar counts.
+
+**Fix:** Only create lines on confirmed events (pivot detections, signals), not every bar. Or use a fixed pool of keys with `extend: "right"` and update them in place with `.set()`:
+
+```js
+// Bad: creates a new line on every bar
+onBar(() => {
+  Line(`line_${ctx.i()}`, { ... });
+});
+
+// Good: one line, updated in place
+const trendLine = Line("trend", { x1: 0, y1: 0, x2: 1, y2: 1, color: "#22c55eFF" });
+onBar(() => {
+  trendLine.set({ x2: ctx.i(), y2: ctx.close() });
+});
+```
+</Accordion>
+
+<Accordion title="Series limit exceeded">
+**Message:** `Series limit exceeded (64).`
+
+**Cause:** Your script created more than 64 `Series` instances (including internal ones created by `ta.barssince` and `ta.cum`).
+
+**Fix:** Count your Series. Reuse them where possible. Remember that each unique `ta.barssince(key, ...)` call takes one slot. Combine multiple related state variables into a single Series by encoding them (e.g. use one Series for price + another for index, not three for different values from the same event).
+</Accordion>
+
+<Accordion title="LineFill source lines must share forceOverlay">
+**Message:** `LineFill source lines must have matching forceOverlay values.`
+
+**Cause:** You created a `LineFill` using two `Line` entities with different `forceOverlay` settings - one with `forceOverlay: true` and the other with `forceOverlay: false`.
+
+**Fix:** Ensure both source lines have the same `forceOverlay` value:
+
+```js
+const top = Line("top", { ..., forceOverlay: true });
+const bot = Line("bot", { ..., forceOverlay: true }); // must match
+const fill = LineFill("fill", top, bot, { color: "#22c55e30" });
+```
+</Accordion>
+
+<Accordion title="X is not a function">
+**Message:** `TypeError: X is not a function` where X is a `ctx.*` accessor or `ta.*` call.
+
+**Common causes:**
+1. Calling `ctx.close` without parentheses when you want the value: use `ctx.close()` for the scalar, `ctx.close` for the source reference.
+2. Passing a scalar where a source function is required: `ta.ema(ctx.close(), 20)` passes a number, not a source.
+
+**Fix:**
+```js
+// Get the scalar value:
+const closeValue = ctx.close();
+
+// Get a source function reference (for ta.*):
+const ema = ta.ema(ctx.close, 20); // correct - no parentheses on ctx.close
+```
+</Accordion>
+
+<Accordion title="Silent NaN propagation - plot shows no line">
+**Symptom:** A plot series appears blank or shows only a partial line with no visible values.
+
+**Cause:** The value emitted to `plot()` is `NaN` (often from an indicator in its warmup period, or from arithmetic on a `null` close value).
+
+**Debug steps:**
+1. Add `console.log("value:", value)` inside `onBar` and check the Console panel.
+2. Look for `NaN` or `null` in the output.
+3. Wrap with `nz()` or add an early `if (na(value)) return` guard.
+
+```js
+onBar(() => {
+  const rsi = ta.rsi(ctx.close, 14);
+  console.log("RSI:", rsi); // will show NaN for first ~13 bars
+  if (na(rsi)) return;
+  plot("RSI", rsi);
+});
+```
+</Accordion>
+
+<Accordion title="Stale handle warning - entity not updating">
+**Symptom:** A `Line` or `Box` stops updating partway through the chart.
+
+**Cause:** You recreated the entity with the same key (new gen), but kept using the old handle returned from the first call. The old handle's `.set()` calls silently no-op.
+
+**Fix:** Always capture the return value from the latest factory call:
+
+```js
+// Wrong
+const line = Line("sr", { ... });
+onBar(() => {
+  Line("sr", { ... }); // new gen - line handle is now stale
+  line.set({ color: "red" }); // silently no-ops
+});
+
+// Correct
+let line = Line("sr", { ... });
+onBar(() => {
+  line = Line("sr", { ... }); // reassign to get new handle
+  line.set({ color: "red" }); // works
+});
+```
+</Accordion>
+
+<Accordion title="TIMEOUT - top-level eval exceeded 1.5s">
+**Message:** `TIMEOUT: top-level evaluation exceeded 1.5s`
+
+**Cause:** Top-level code (outside `onBar`) ran for too long. This usually means a large loop or expensive synchronous work at the script root.
+
+**Fix:** Move computation inside `onBar`. Only declarations (`input.*`, `plot()`, `Series()`) belong at the top level. If you genuinely need top-level computation, simplify it.
+</Accordion>
+
+<Accordion title="TIMEOUT - per-bar onBar exceeded 50ms">
+**Message:** `TIMEOUT: onBar execution exceeded 50ms at bar N`
+
+**Cause:** One `onBar` call took more than 50ms. Usually caused by a nested loop over the entire bar history inside `onBar`.
+
+**Fix:** Replace manual loops with `ta.*` functions (Rust-native, much faster). See [Performance tips](/reference/performance).
+</Accordion>
+
+</AccordionGroup>
+
+## General debugging workflow
+
+<Steps>
+  <Step title="Check the Console panel">
+    Open the Console tab in the editor. All `console.log`, `console.warn`, errors, and budget warnings appear here.
+  </Step>
+  <Step title="Add log statements">
+    Add `console.log("key:", value)` at the top of `onBar` to see what values are flowing through. Remember: only the last 100 lines x 200 chars are shown.
+  </Step>
+  <Step title="Check for NaN with na()">
+    If a plot is blank, add `if (na(myValue)) console.log("NaN at bar", ctx.i())` to find the first bar where the value goes missing.
+  </Step>
+  <Step title="Isolate the indicator">
+    Remove all but one plot and one calculation. Re-add them one by one until the problem reproduces.
+  </Step>
+</Steps>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Gotchas" href="/reference/gotchas">
+    Conceptual traps that cause these errors.
+  </Card>
+  <Card title="API limits" href="/reference/api-limits">
+    All budget numbers.
+  </Card>
+  <Card title="Performance tips" href="/reference/performance">
+    How to avoid timeout errors.
+  </Card>
+</CardGroup>

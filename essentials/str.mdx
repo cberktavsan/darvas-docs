@@ -1,0 +1,89 @@
+---
+title: "str.*"
+description: "String utilities for formatting, slicing, and transforming text inside custom indicators."
+---
+
+## Overview
+
+The `str` namespace provides a set of string helpers. All functions are pure (no side effects) and available globally as `str.*`. Use them primarily for `console.log` formatting or building label text for [Label entities](/entities/label).
+
+## Function reference
+
+| Function | Returns | Description |
+| --- | --- | --- |
+| `str.format(template, ...args)` | `string` | Printf-style formatting |
+| `str.length(s)` | `number` | Character count |
+| `str.substring(s, start, len)` | `string` | Extract a portion |
+| `str.contains(s, substring)` | `boolean` | Substring presence check |
+| `str.split(s, sep)` | `string[]` | Split into array |
+| `str.upper(s)` | `string` | Convert to upper case |
+| `str.lower(s)` | `string` | Convert to lower case |
+| `str.trim(s)` | `string` | Remove leading/trailing whitespace |
+
+## `str.format` - placeholder syntax
+
+`str.format` uses `{}` placeholders, filled left-to-right from the remaining arguments:
+
+```js
+const msg = str.format("RSI: {} | EMA: {}", 72.4, 42300);
+// "RSI: 72.4 | EMA: 42300"
+
+const priceLabel = str.format("{} @ {}", ctx.instId, math.round(ctx.close(), 2));
+// "BTC-USDT-SWAP @ 67832.14"
+```
+
+## Practical example
+
+```js
+const src = input.source("Source", "close");
+
+onBar(() => {
+  const rsi = ta.rsi(src, 14);
+  if (na(rsi)) return;
+
+  if (ctx.isLast()) {
+    const label = str.format(
+      "RSI({}) = {} | {}",
+      14,
+      math.round(rsi, 1),
+      rsi > 70 ? "OB" : rsi < 30 ? "OS" : "Neutral"
+    );
+    console.log(label);
+  }
+
+  plot("RSI", rsi);
+});
+```
+
+## Splitting instrument IDs
+
+```js
+// ctx.instId = "BTC-USDT-SWAP"
+const parts = str.split(ctx.instId, "-");
+const base  = parts[0]; // "BTC"
+const quote = parts[1]; // "USDT"
+const kind  = parts[2]; // "SWAP"
+```
+
+## Case conversion
+
+```js
+const upper = str.upper("hello"); // "HELLO"
+const lower = str.lower("WORLD"); // "world"
+const trimmed = str.trim("  foo  "); // "foo"
+```
+
+<Note>
+  For the full list of available `str.*` functions, see the [custom indicator spec](https://darvas.app/docs/specs/custom-indicators). The table above covers the most commonly used subset.
+</Note>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="math.*" href="/essentials/math">
+    Numeric utilities - use with str.format for formatted labels.
+  </Card>
+  <Card title="Label entity" href="/entities/label">
+    Display formatted text on the chart canvas.
+  </Card>
+</CardGroup>

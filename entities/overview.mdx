@@ -1,0 +1,123 @@
+---
+title: "Drawing entities overview"
+description: "Persistent keyed entities - Lines, Boxes, Labels, Markers, LineFills - and how the slot model and handle API work."
+---
+
+## What are entities?
+
+Drawing entities are interactive overlays on the chart canvas - Lines, Boxes, Labels, Markers, and LineFills. Unlike `plot()` which renders a value per bar, entities are **keyed** objects that persist across bars and can be mutated in place.
+
+```js
+// Create a support line once; update its color based on price action
+const support = Line("support", {
+  x1: 0, y1: 42000,
+  x2: 100, y2: 42000,
+  color: "#22c55eFF",
+});
+
+onBar(() => {
+  const close = ctx.close();
+  // Turn red when price approaches the support
+  support.set({ color: close < 42500 ? "#ef4444FF" : "#22c55eFF" });
+});
+```
+
+## The slot model
+
+**1 key = 1 slot.** Each unique key string occupies exactly one slot in the entity registry. Calling the same factory with the same key overwrites the slot:
+
+- Last call wins.
+- The slot's content (position, color, style) reflects the most recent call.
+- Persistent across bars - you do not need to recreate the entity every bar.
+
+```js
+// Every bar this runs, it updates the SAME line slot - it does not create 500 lines
+onBar(() => {
+  Line("trend", {
+    x1: ctx.i() - 20, y1: ta.lowest(ctx.low, 20),
+    x2: ctx.i(),      y2: ctx.close(),
+    color: "#22c55eFF",
+  });
+});
+```
+
+## Generation tokens
+
+Every time you call a factory (`Line`, `Box`, etc.) for a key, a new **generation** is allocated. The returned handle carries the key + generation pair internally as `{ __key, __gen, __kind }`.
+
+<Warning>
+  If you call `Line("my-line", opts)` twice, the second call allocates a fresh generation. Any handle returned from the **first** call will silently no-op on `.set()` or `.delete()` - its generation no longer matches the slot. Always use the return value from the most recent call.
+</Warning>
+
+```js
+let line = Line("sr", { x1: 0, y1: 100, x2: 10, y2: 100, color: "#22c55eFF" });
+
+onBar(() => {
+  if (someCondition) {
+    // Correct: capture the new handle
+    line = Line("sr", { x1: 0, y1: 95, x2: ctx.i(), y2: 95, color: "#ef4444FF" });
+  }
+  // Use the current handle to mutate
+  line.set({ color: ctx.close() > 95 ? "#22c55eFF" : "#ef4444FF" });
+});
+```
+
+## Handle API
+
+All entity factories return a handle with three methods:
+
+<ParamField path="handle.set(opts)" type="void">
+  Mutate the entity in place. Only the provided keys are updated; others remain unchanged. No-ops silently if the generation is stale.
+</ParamField>
+
+<ParamField path="handle.clone(newKey)" type="handle">
+  Copy the entity to a new key with a fresh generation. Returns a handle to the clone.
+</ParamField>
+
+<ParamField path="handle.delete()" type="void">
+  Remove the entity from the chart. No-ops silently if the generation is stale.
+</ParamField>
+
+```js
+const h = Line("my-line", { x1: 0, y1: 0, x2: 1, y2: 1, color: "#22c55eFF" });
+
+h.set({ color: "#ef4444FF", y2: 2 });  // mutate in place
+const h2 = h.clone("my-line-copy");    // clone to new key
+h.delete();                            // remove original
+```
+
+## Entity budgets
+
+| Type | Per-type limit | Global limit |
+| --- | --- | --- |
+| Line | 500 | - |
+| Box | 500 | - |
+| Label | 500 | - |
+| Marker | 500 | - |
+| LineFill | 500 | - |
+| **All entities combined** | - | **1500** |
+
+Exceeding the per-type limit truncates silently with a warning in the console. See [API limits](/reference/api-limits) for all budget values.
+
+## Entity types
+
+<CardGroup cols={2}>
+  <Card title="Line" href="/entities/line">
+    Anchored line segment between two bar/price coordinates.
+  </Card>
+  <Card title="Box" href="/entities/box">
+    Rectangular zone with fill, border, text, and extend options.
+  </Card>
+  <Card title="Label" href="/entities/label">
+    Text label pinned to a bar/price coordinate.
+  </Card>
+  <Card title="Marker" href="/entities/marker">
+    Icon shape (circle, diamond, arrow, etc.) at a point.
+  </Card>
+  <Card title="LineFill" href="/entities/linefill">
+    Filled area between two Line entities.
+  </Card>
+  <Card title="Constants" href="/entities/constants">
+    linestyle, shape, size, extend, text.align enums.
+  </Card>
+</CardGroup>

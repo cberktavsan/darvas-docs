@@ -1,0 +1,113 @@
+---
+title: "Inputs"
+description: "input.int, input.float, input.bool, input.string, input.color, and input.source - the parameter system that renders a form in the Inputs panel."
+---
+
+## Overview
+
+`input.*` functions declare user-configurable parameters. Each call appears in the Inputs panel as a form control. You must call them at the **top level** of your script - never inside `onBar`.
+
+```js
+const length = input.int("Length", 14);
+const src    = input.source("Source", "close");
+const useEma = input.bool("Use EMA", false);
+```
+
+## Function reference
+
+<ParamField path="input.int(name, default, opts?)" type="number">
+  Integer spinner. `opts: { min, max, step, group }`.
+  ```js
+  const len = input.int("Period", 20, { min: 2, max: 500, step: 1 });
+  ```
+</ParamField>
+
+<ParamField path="input.float(name, default, opts?)" type="number">
+  Float spinner. Same opts as `input.int`.
+  ```js
+  const mult = input.float("Multiplier", 2.0, { min: 0.1, max: 10, step: 0.1 });
+  ```
+</ParamField>
+
+<ParamField path="input.bool(name, default, opts?)" type="boolean">
+  Checkbox toggle.
+  ```js
+  const showLabels = input.bool("Show labels", true);
+  ```
+</ParamField>
+
+<ParamField path="input.string(name, default, opts?)" type="string">
+  Text field. Pass `opts.options` for a dropdown.
+  ```js
+  const mode = input.string("Mode", "fast", { options: ["fast", "slow", "adaptive"] });
+  const note = input.string("Label text", "Signal");
+  ```
+</ParamField>
+
+<ParamField path="input.color(name, default, opts?)" type="string">
+  Color picker. Returns a hex color string.
+  ```js
+  const bullColor = input.color("Bull color", "#22c55eFF");
+  const bearColor = input.color("Bear color", "#ef4444FF");
+  ```
+</ParamField>
+
+<ParamField path="input.source(name, default?)" type="(offset?) => number | null">
+  OHLCV source selector. Returns a function you pass directly to `ta.*`.
+  The default must be one of `"open"`, `"high"`, `"low"`, `"close"`, `"hl2"`, `"hlc3"`, `"ohlc4"`.
+  ```js
+  const src = input.source("Source", "close");
+  // src is now a function: src(0) === ctx.close(0)
+  ta.ema(src, 20); // pass src directly, do not call it
+  ```
+</ParamField>
+
+## Form control mapping
+
+| Input type | Rendered control |
+| --- | --- |
+| `input.int` / `input.float` | Number spinner with optional min/max/step |
+| `input.bool` | Checkbox |
+| `input.string` with `options` | Dropdown select |
+| `input.string` without `options` | Text field |
+| `input.color` | Color picker |
+| `input.source` | OHLCV source dropdown |
+
+## Grouping inputs
+
+Use the `group` option to visually separate inputs in the panel:
+
+```js
+const fastLen = input.int("Fast", 12, { group: "MACD" });
+const slowLen = input.int("Slow", 26, { group: "MACD" });
+const sigLen  = input.int("Signal", 9, { group: "MACD" });
+const lineCol = input.color("Line color", "#22c55eFF", { group: "Display" });
+```
+
+## The source function pattern
+
+`input.source` returns an `(offset?) => number | null` function - the same shape as `ctx.close`, `ctx.open`, etc. Pass it directly to `ta.*`; do not call it yourself:
+
+```js
+const src = input.source("Source", "close");
+
+onBar(() => {
+  const val = ta.ema(src, 14);  // correct: pass src as a function reference
+  // const val = ta.ema(src(), 14);  // WRONG: src() returns a scalar, not a source
+});
+```
+
+<Warning>
+  Calling `input.*` inside `onBar` throws a `RuntimeError`. Move all declarations to the top level.
+</Warning>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Script lifecycle" href="/essentials/script-lifecycle">
+    Why top-level code runs once and onBar runs per bar.
+  </Card>
+  <Card title="Bar context" href="/essentials/bar-context">
+    Built-in OHLCV accessors that share the source function shape.
+  </Card>
+</CardGroup>

@@ -1,0 +1,133 @@
+---
+title: "hline, fill, bgcolor, barcolor"
+description: "Static horizontal lines, shading between plot series, and per-bar background / candle color overrides."
+---
+
+## Overview
+
+These four functions complement `plot()` with static and per-bar visual layers:
+
+```ts
+hline(value, opts?)           // static horizontal reference line
+fill(plotA, plotB, opts?)     // shade between two plot handles
+bgcolor(color, opts?)         // per-bar background (inside onBar)
+barcolor(color, opts?)        // per-bar candle override (inside onBar)
+```
+
+## `hline`
+
+Draws a static horizontal line across the entire chart at a fixed price/value. Call at the **top level**.
+
+```js
+hline(70, { color: "#ef4444FF", linewidth: 1, style: "dashed" });
+hline(50, { color: "#6b7280FF", linewidth: 1 });
+hline(30, { color: "#22c55eFF", linewidth: 1, style: "dashed" });
+```
+
+**Options:**
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `string` | chart default | `#RRGGBBAA` hex |
+| `linewidth` | `number` | `1` | Pixels |
+| `style` | `string` | `"solid"` | `"solid"`, `"dotted"`, `"dashed"` |
+| `title` | `string` | - | Tooltip label |
+
+Budget: maximum **64 hlines** per indicator.
+
+## `fill`
+
+Shades the area between two plot series. Both plots must be registered before calling `fill`. Call at the **top level**.
+
+```js
+const upper = plot("Upper BB", null, { color: "#22c55eFF" });
+const lower = plot("Lower BB", null, { color: "#22c55eFF" });
+fill(upper, lower, { color: "#22c55e20" });
+```
+
+**Options:**
+
+| Option | Type | Description |
+| --- | --- | --- |
+| `color` | `string` | Fill color (use low alpha, e.g. `#22c55e20`) |
+| `title` | `string` | Tooltip label |
+
+Budget: maximum **64 fills** per indicator.
+
+## `bgcolor`
+
+Overrides the chart background color for the current bar. Call **inside `onBar`**.
+
+```js
+onBar(() => {
+  const rsi = ta.rsi(ctx.close, 14);
+  if (na(rsi)) return;
+
+  if (rsi > 70) {
+    bgcolor("#ef444420"); // faint red for overbought
+  } else if (rsi < 30) {
+    bgcolor("#22c55e20"); // faint green for oversold
+  }
+});
+```
+
+Budget: maximum **1000 bgcolor entries** (capped to the last 1000 bars with a non-null color). Passing `null` clears the color for that bar.
+
+## `barcolor`
+
+Overrides the candle/bar color on the main price chart for the current bar. Call **inside `onBar`**.
+
+```js
+onBar(() => {
+  const isEngulf = ctx.close() > ctx.open(1) && ctx.open() < ctx.close(1);
+  barcolor(isEngulf ? "#22c55eFF" : null);
+});
+```
+
+Budget: maximum **1000 barcolor entries**.
+
+## Per-bar vs static
+
+| Primitive | When to call | Effect |
+| --- | --- | --- |
+| `hline` | Top level | One horizontal line across entire chart |
+| `fill` | Top level | Persistent band between two plot series |
+| `bgcolor` | Inside `onBar` | Background color for each individual bar |
+| `barcolor` | Inside `onBar` | Candle color for each individual bar |
+
+<Note>
+  `bgcolor` and `barcolor` only take effect for bars where they are explicitly called. Bars without a call retain the default chart color.
+</Note>
+
+## Complete RSI indicator example
+
+```js
+// overlay = false
+const length = input.int("Length", 14);
+
+const rsiPlot = plot("RSI", null, { color: "#a78bfaFF" });
+
+hline(70, { color: "#ef4444FF", style: "dashed" });
+hline(50, { color: "#6b728080", style: "dotted" });
+hline(30, { color: "#22c55eFF", style: "dashed" });
+
+onBar(() => {
+  const rsi = ta.rsi(ctx.close, length);
+  plot("RSI", rsi);
+  bgcolor(rsi > 70 ? "#ef444415" : rsi < 30 ? "#22c55e15" : null);
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Plot basics" href="/plotting/plot-basics">
+    plot() - the main time-series drawing primitive.
+  </Card>
+  <Card title="color.*" href="/essentials/color">
+    Color format and named constants.
+  </Card>
+  <Card title="API limits" href="/reference/api-limits">
+    Budget numbers for all drawing primitives.
+  </Card>
+</CardGroup>

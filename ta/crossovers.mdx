@@ -1,0 +1,123 @@
+---
+title: "Crossovers"
+description: "ta.crossover, ta.crossunder, ta.cross, ta.rising, ta.falling - directional change detection functions."
+---
+
+## Overview
+
+Crossover functions compare two sources at the current and previous bar to detect directional changes. They all return a `boolean`.
+
+<Note>
+  All crossover functions require a **source function** (a `(offset?) => number | null` callable), not a scalar. Pass `ctx.close` or `input.source()` - not `ctx.close()`.
+</Note>
+
+## `ta.crossover(a, b)` - A crosses above B
+
+Returns `true` when `a` was below `b` on the previous bar and is now above `b`.
+
+```js
+onBar(() => {
+  const fast = ta.ema(ctx.close, 9);
+  const slow  = ta.ema(ctx.close, 21);
+
+  // We need series for crossover detection
+  // ta.crossover works when a and b are source functions
+  // Here we pass inline functions that reference our computed values:
+  const fastSrc = Series("fast-ema-src");
+  const slowSrc = Series("slow-ema-src");
+
+  const prevFast = fastSrc.get(1);
+  const prevSlow = slowSrc.get(1);
+  fastSrc.set(fast);
+  slowSrc.set(slow);
+
+  const crossed = !na(prevFast) && prevFast < prevSlow && fast > slow;
+  plot("Cross", crossed ? ctx.low() * 0.998 : NaN, { style: "arrowup", colorUp: "#22c55eFF", size: 8 });
+});
+```
+
+The idiomatic form passes source functions directly:
+
+```js
+onBar(() => {
+  // ta.crossover accepts source functions directly
+  const bullCross = ta.crossover(ta.ema.bind(null, ctx.close, 9), ctx.close);
+  plot("Signal", bullCross ? 1 : NaN);
+});
+```
+
+## `ta.crossunder(a, b)` - A crosses below B
+
+Returns `true` when `a` was above `b` on the previous bar and is now below `b`.
+
+```js
+onBar(() => {
+  const rsi = ta.rsi(ctx.close, 14);
+  // Detect RSI crossing below overbought level
+  // b can be a number constant
+  const crossed = ta.crossunder(() => rsi, 70);
+  plot("OB Exit", crossed ? ctx.high() * 1.001 : NaN);
+});
+```
+
+## `ta.cross(a, b)` - Either direction
+
+Returns `true` for either `crossover` or `crossunder`.
+
+```js
+onBar(() => {
+  const crossed = ta.cross(() => ta.rsi(ctx.close, 14), 50);
+  bgcolor(crossed ? "#f59e0b20" : null);
+});
+```
+
+## `ta.rising(source, length)` - Rising over N bars
+
+Returns `true` if `source(0) > source(length)` - current value is higher than `length` bars ago.
+
+```js
+onBar(() => {
+  const isRising = ta.rising(ctx.close, 5);
+  bgcolor(isRising ? "#22c55e10" : null);
+});
+```
+
+## `ta.falling(source, length)` - Falling over N bars
+
+Returns `true` if `source(0) < source(length)`.
+
+```js
+onBar(() => {
+  const isFalling = ta.falling(ctx.close, 5);
+  bgcolor(isFalling ? "#ef444410" : null);
+});
+```
+
+## Source type requirement
+
+The `a` and `b` arguments to crossover/crossunder/cross must be **source functions** (`(offset?) => number | null`). A plain number is accepted for `b` only. Passing a scalar to `a` causes a `TypeError`.
+
+```js
+// Correct: ctx.close is a function
+ta.crossover(ctx.close, ctx.open);
+
+// Correct: b can be a number constant
+ta.crossunder(() => ta.rsi(ctx.close, 14), 70);
+
+// Wrong: passing scalars
+// ta.crossover(ctx.close(), ctx.open()); // TypeError
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Moving averages" href="/ta/moving-averages">
+    Common sources for crossover signals.
+  </Card>
+  <Card title="Oscillators" href="/ta/oscillators">
+    RSI crossovers (crossing 70/30) are a classic use case.
+  </Card>
+  <Card title="Series" href="/essentials/series">
+    Manual crossover detection with Series for full control.
+  </Card>
+</CardGroup>

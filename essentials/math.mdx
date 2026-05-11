@@ -1,0 +1,98 @@
+---
+title: "math.*"
+description: "The math namespace provides arithmetic, trigonometric, rounding, and random number utilities. Pine Script v5 parity."
+---
+
+## Overview
+
+The `math` namespace mirrors the JavaScript `Math` object with Pine Script-compatible names. All functions are available globally as `math.*`.
+
+## Arithmetic
+
+| Function | Returns | Example |
+| --- | --- | --- |
+| `math.abs(x)` | `number` | `math.abs(-5)` → `5` |
+| `math.sqrt(x)` | `number` | `math.sqrt(9)` → `3` |
+| `math.pow(x, y)` | `number` | `math.pow(2, 10)` → `1024` |
+| `math.log(x)` | `number` | Natural log |
+| `math.log10(x)` | `number` | Base-10 log |
+
+```js
+onBar(() => {
+  const logReturn = math.log(ctx.close() / ctx.close(1));
+  plot("Log Return", logReturn);
+});
+```
+
+## Min / max
+
+| Function | Returns | Example |
+| --- | --- | --- |
+| `math.min(...values)` | `number` | `math.min(3, 1, 2)` → `1` |
+| `math.max(...values)` | `number` | `math.max(3, 1, 2)` → `3` |
+
+```js
+onBar(() => {
+  // Clamp RSI between 10 and 90
+  const rsi = ta.rsi(ctx.close, 14);
+  const clamped = math.max(10, math.min(90, nz(rsi, 50)));
+  plot("Clamped RSI", clamped);
+});
+```
+
+## Rounding
+
+| Function | Returns | Notes |
+| --- | --- | --- |
+| `math.round(x, decimals?)` | `number` | Rounds to `decimals` places (default 0) |
+| `math.floor(x)` | `number` | Round down to nearest integer |
+| `math.ceil(x)` | `number` | Round up to nearest integer |
+
+```js
+const price = ctx.close();
+const rounded = math.round(price, 2);  // e.g. 42567.123 -> 42567.12
+const floored = math.floor(price);     // e.g. 42567.123 -> 42567
+```
+
+## Trigonometric
+
+| Function | Notes |
+| --- | --- |
+| `math.sin(x)` | Input in radians |
+| `math.cos(x)` | Input in radians |
+| `math.tan(x)` | Input in radians |
+
+```js
+// Sine-wave overlay (purely decorative example)
+const PI = 3.14159265358979;
+onBar(() => {
+  const t = ctx.i() / 20;
+  const wave = math.sin(2 * PI * t) * 100;
+  plot("Sine wave", wave);
+});
+```
+
+## Constants
+
+The `math` namespace does not expose `math.PI` directly - use the literal `3.14159265358979` or derive it from `math.asin(1) * 2` if needed.
+
+## Random
+
+| Function | Returns |
+| --- | --- |
+| `math.random()` | `number` in `[0, 1)` - different each evaluation |
+
+<Note>
+  `math.random()` is available but its output changes on every indicator re-evaluation. Avoid using it for anything that should produce stable chart output.
+</Note>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="str.*" href="/essentials/str">
+    String utilities namespace.
+  </Card>
+  <Card title="NaN handling" href="/essentials/nan-handling">
+    math.* functions propagate NaN - guard inputs with nz().
+  </Card>
+</CardGroup>

@@ -1,0 +1,99 @@
+---
+title: "LineFill"
+description: "LineFill(key, lineA, lineB, opts) shades the area between two Line entities."
+---
+
+## Signature
+
+```ts
+LineFill(key, lineA, lineB, opts) -> handle
+```
+
+A `LineFill` shades the region between two existing `Line` entity handles. The source lines are specified at creation time and **cannot be changed afterwards** - to retarget, delete the fill and create a new one.
+
+## Quick example
+
+```js
+const top = Line("upper-band", { x1: 0, y1: 105, x2: 50, y2: 105, color: "#22c55eFF" });
+const bot = Line("lower-band", { x1: 0, y1: 95,  x2: 50, y2: 95,  color: "#22c55eFF" });
+
+const fill = LineFill("band-fill", top, bot, {
+  color: "#22c55e30",
+});
+```
+
+## Options
+
+<ParamField path="key" type="string" required>
+  Unique slot key for this fill.
+</ParamField>
+
+<ParamField path="lineA" type="handle" required>
+  Handle returned by the first `Line()` call.
+</ParamField>
+
+<ParamField path="lineB" type="handle" required>
+  Handle returned by the second `Line()` call.
+</ParamField>
+
+<ParamField path="color" type="string">
+  Fill color as `#RRGGBBAA`. Use low alpha (e.g. `#22c55e30`) for zone shading.
+</ParamField>
+
+## Source line immutability
+
+<Warning>
+  The source line keys (`lineA` and `lineB`) are fixed at construction time. You cannot retarget a LineFill to different lines after creation. To change which lines a fill references, delete the fill and recreate it.
+</Warning>
+
+```js
+// Correct: delete + recreate to change source lines
+fill.delete();
+const newFill = LineFill("band-fill", newTop, newBot, { color: "#ef444430" });
+```
+
+## forceOverlay constraint
+
+Both source lines must have the same `forceOverlay` value. Mixing `forceOverlay: true` and `forceOverlay: false` lines in a single LineFill raises an error at construction time.
+
+<Note>
+  The `forceOverlay` constraint is checked when the LineFill is constructed, not when it is rendered. If the source lines have mismatched `forceOverlay` settings, the LineFill will fail silently (not rendered) and log a warning.
+</Note>
+
+## Handle methods
+
+```js
+fill.set({ color: "#a78bfa30" }); // change fill color
+fill.clone("band-fill-2");        // clone with same source lines
+fill.delete();                    // remove fill
+```
+
+## Bollinger Bands fill example
+
+```js
+const upperPlot = Line("bb-upper", { x1: 0, y1: 0, x2: 0, y2: 0, color: "#3b82f6FF" });
+const lowerPlot = Line("bb-lower", { x1: 0, y1: 0, x2: 0, y2: 0, color: "#3b82f6FF" });
+const bandFill  = LineFill("bb-fill", upperPlot, lowerPlot, { color: "#3b82f620" });
+
+onBar(() => {
+  const bb = ta.bb(ctx.close, 20, 2);
+  if (na(bb.upper)) return;
+
+  upperPlot.set({ x1: 0, y1: bb.upper, x2: ctx.i(), y2: bb.upper });
+  lowerPlot.set({ x1: 0, y1: bb.lower, x2: ctx.i(), y2: bb.lower });
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Line" href="/entities/line">
+    Line entity - both source lines for LineFill must be Line handles.
+  </Card>
+  <Card title="fill() primitive" href="/plotting/hline-fill-bgcolor">
+    fill() shades between two plot series (not Line entities).
+  </Card>
+  <Card title="Bollinger Bands example" href="/examples/bollinger-bands">
+    Full working BB with LineFill shading.
+  </Card>
+</CardGroup>

@@ -1,0 +1,89 @@
+---
+title: "RSI divergence"
+description: "RSI calculation with bearish divergence detection - RSI makes lower highs while price makes higher highs."
+---
+
+## What this builds
+
+- Standard RSI plot with overbought/oversold levels
+- Bearish divergence detection: price makes a higher pivot high but RSI makes a lower pivot high
+- Visual markers on detected divergence bars
+
+## Full script
+
+```js
+// overlay = false
+const rsiLen   = input.int("RSI Length", 14, { min: 2 });
+const pivotLen = input.int("Pivot lookback", 5, { min: 2, max: 20 });
+
+hline(70, { color: "#ef4444FF", style: "dashed" });
+hline(50, { color: "#6b728050" });
+hline(30, { color: "#22c55eFF", style: "dashed" });
+
+plot("RSI",  null, { color: "#a78bfaFF" });
+plot("Div",  null, { style: "arrowdown", colorUp: "#ef4444FF", size: 10 });
+
+// Store prior pivot RSI and price highs
+const lastPivotRsi   = Series("last-pivot-rsi");
+const lastPivotPrice = Series("last-pivot-price");
+
+onBar(() => {
+  const rsi = ta.rsi(ctx.close, rsiLen);
+  if (na(rsi)) return;
+
+  plot("RSI", rsi);
+
+  // Check for a pivot high in price (lagged by pivotLen bars)
+  const priceHigh = ta.pivothigh(ctx.high, pivotLen, pivotLen);
+  const rsiAtPivot = na(priceHigh) ? NaN : ta.rsi(ctx.close, rsiLen);
+
+  // Update last-seen pivot values
+  if (!na(priceHigh)) {
+    lastPivotPrice.set(priceHigh);
+    lastPivotRsi.set(nz(rsiAtPivot, rsi));
+  } else {
+    lastPivotPrice.set(lastPivotPrice.get(1));
+    lastPivotRsi.set(lastPivotRsi.get(1));
+  }
+
+  // Bearish divergence: price higher high, RSI lower high
+  if (!na(priceHigh) && !na(lastPivotPrice.get(1))) {
+    const priceDiverge = priceHigh > lastPivotPrice.get(1);
+    const rsiDiverge   = nz(rsiAtPivot, rsi) < lastPivotRsi.get(1);
+
+    if (priceDiverge && rsiDiverge) {
+      plot("Div", rsi + 5); // marker above RSI value
+    } else {
+      plot("Div", NaN);
+    }
+  } else {
+    plot("Div", NaN);
+  }
+});
+```
+
+## How divergence detection works
+
+1. `ta.pivothigh` detects swing highs in price, lagged by `pivotLen` bars.
+2. `Series` stores the RSI value and price level at each confirmed pivot.
+3. On the next pivot, compare: if price is higher but RSI is lower, it is bearish divergence.
+
+## Notes
+
+- The lag from `ta.pivothigh` means divergence signals are confirmed `pivotLen` bars after the actual pivot. This is unavoidable - see [Pivots](/ta/pivots).
+- The `Series` carry-forward pattern (`lastPivotPrice.set(lastPivotPrice.get(1))`) propagates the last known pivot value across non-pivot bars so the comparison always has data.
+- Adjust `pivotLen` to control sensitivity: smaller = more signals, larger = only major swings.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Oscillators" href="/ta/oscillators">
+    ta.rsi reference.
+  </Card>
+  <Card title="Pivots" href="/ta/pivots">
+    ta.pivothigh lag explanation.
+  </Card>
+  <Card title="Series" href="/essentials/series">
+    Persistent storage used to remember prior pivot values.
+  </Card>
+</CardGroup>

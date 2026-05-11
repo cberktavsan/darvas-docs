@@ -1,0 +1,92 @@
+---
+title: "API limits"
+description: "All runtime budgets: plots, hlines, fills, Series, entities, bar lookback, and timing constraints."
+---
+
+## Runtime budgets
+
+| Resource | Limit | Error raised |
+| --- | --- | --- |
+| Source script size | 50 KB | `INVALID_REQUEST` |
+| Heap memory | 64 MB | `HEAP_LIMIT` |
+| Stack depth | 1 MB | `RUNTIME_ERROR` |
+| Top-level eval | 1.5 s wall-clock | `TIMEOUT` |
+| Per-bar `onBar` | 50 ms wall-clock | `TIMEOUT` |
+| Total run time | 10 s wall-clock | `TIMEOUT` |
+| Bar lookback | 100 000 bars | `INVALID_REQUEST` |
+
+## Drawing primitive budgets
+
+| Primitive | Limit | Overflow behavior |
+| --- | --- | --- |
+| `plot()` series | 64 | Error at evaluation time |
+| `hline()` | 64 | Error at evaluation time |
+| `fill()` | 64 | Error at evaluation time |
+| `bgcolor()` entries | 1 000 most recent | Silent truncation (oldest dropped) |
+| `barcolor()` entries | 1 000 most recent | Silent truncation (oldest dropped) |
+
+## Entity budgets
+
+| Entity type | Per-type limit | Overflow behavior |
+| --- | --- | --- |
+| Line | 500 | Warning in console; oldest truncated |
+| Box | 500 | Warning in console; oldest truncated |
+| Label | 500 | Warning in console; oldest truncated |
+| Marker | 500 | Warning in console; oldest truncated |
+| LineFill | 500 | Warning in console; oldest truncated |
+| **All entities combined** | **1 500** | Global cap enforced after per-type check |
+
+<Warning>
+  Entity overflow is silent on screen - no chart error. Watch the Console panel for `"Line limit exceeded"` and similar warnings when you hit the per-type cap.
+</Warning>
+
+## Series budget
+
+| Resource | Limit | Notes |
+| --- | --- | --- |
+| `Series()` instances | 64 total | Shared with `ta.barssince` and `ta.cum` internal series |
+
+Every unique key passed to `ta.barssince(key, ...)` or `ta.cum(key, ...)` consumes one slot from this budget.
+
+## Console output budget
+
+| Resource | Limit |
+| --- | --- |
+| Console log lines | 100 per evaluation |
+| Characters per line | 200 |
+
+Lines beyond the cap are dropped. The console panel shows a truncation notice when the limit is reached.
+
+## Banned constructs
+
+The following are rejected at parse time (not at runtime - the script will not evaluate at all):
+
+- `Function`, `eval`, `globalThis`, `window`, `self`
+- `WebAssembly`, `Atomics`, `SharedArrayBuffer`
+- `Reflect`, `Proxy`
+- `setTimeout`, `setInterval`, `setImmediate`, `queueMicrotask`
+- `fetch`, `XMLHttpRequest`, `WebSocket`, `Worker`
+- `process`, `require`, `__dirname`, `__filename`
+- `import` declarations and dynamic `import()`
+- `with` statements
+- `async function` / `async () =>`
+- Generators
+- `for await ... of`
+- `while(true)` without a syntactic `break`
+- `for(;;)` without a `break`
+- Literal loop bounds > 100 000
+- Property walks through `__proto__` / `constructor` / `prototype`
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Performance tips" href="/reference/performance">
+    How to stay within budgets on large bar counts.
+  </Card>
+  <Card title="Troubleshooting" href="/reference/troubleshooting">
+    Common limit-related error messages.
+  </Card>
+  <Card title="Series" href="/essentials/series">
+    64-series budget details.
+  </Card>
+</CardGroup>

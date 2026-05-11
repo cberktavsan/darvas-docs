@@ -1,0 +1,107 @@
+---
+title: "Aggregators"
+description: "ta.highest, ta.lowest, ta.median, ta.mode, ta.change, ta.cum, ta.barssince - range and cumulative aggregation functions."
+---
+
+## `ta.highest(source, length)` - Highest value
+
+Maximum of `source` over `length` bars.
+
+```js
+onBar(() => {
+  plot("52-week High", ta.highest(ctx.high, 365));
+});
+```
+
+## `ta.lowest(source, length)` - Lowest value
+
+Minimum of `source` over `length` bars.
+
+```js
+onBar(() => {
+  plot("20-bar Low", ta.lowest(ctx.low, 20));
+});
+```
+
+## `ta.median(source, length)` - Median
+
+Middle value when sorted over `length` bars.
+
+```js
+onBar(() => {
+  plot("Median close", ta.median(ctx.close, 20));
+});
+```
+
+## `ta.mode(source, length)` - Most frequent value
+
+Returns the value that appears most often in the window. Returns `NaN` if there is a tie.
+
+```js
+onBar(() => {
+  const m = ta.mode(ctx.close, 10);
+  if (!na(m)) plot("Mode", m);
+});
+```
+
+## `ta.change(source, length?)` - Bar-over-bar change
+
+Current value minus the value `length` bars ago. `length` defaults to `1`.
+
+```js
+onBar(() => {
+  const dailyChange = ta.change(ctx.close);      // close - prev close
+  const weeklyChange = ta.change(ctx.close, 5);  // close vs 5 bars ago
+  plot("Daily change", dailyChange);
+});
+```
+
+## `ta.barssince(key, condition)` - Bars since true
+
+Returns the number of bars elapsed since `condition` was last true. Requires a **unique string key** to identify this aggregator's state across bars.
+
+```js
+onBar(() => {
+  const rsi = ta.rsi(ctx.close, 14);
+  const bars = ta.barssince("rsi-ob", rsi > 70);
+  plot("Bars since OB", bars);
+});
+```
+
+<Note>
+  The `key` must be unique per call site. If two different `ta.barssince` calls share the same key, they will interfere with each other's state. Use descriptive keys like `"rsi-crossover-14"` rather than `"x"`.
+</Note>
+
+## `ta.cum(key, value)` - Cumulative sum
+
+Returns the running sum of `value` accumulated since the first bar. Requires a **unique string key**.
+
+```js
+onBar(() => {
+  const upVolume = ctx.close() > ctx.open() ? ctx.volume() : 0;
+  const cumUpVol = ta.cum("up-volume", upVolume);
+  plot("Cum up volume", cumUpVol);
+});
+```
+
+## Stateful aggregator keys - budget impact
+
+`ta.barssince` and `ta.cum` each consume one slot from the [64-Series budget](/reference/api-limits). Every unique key creates one internal Series. If you have many call sites, keep an eye on the Series count.
+
+<Warning>
+  Each unique `key` passed to `ta.barssince` or `ta.cum` allocates an internal Series. The total across explicit `Series()` calls and stateful aggregator keys must not exceed 64.
+</Warning>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Pivots" href="/ta/pivots">
+    ta.pivothigh / ta.pivotlow - structural aggregators.
+  </Card>
+  <Card title="Series" href="/essentials/series">
+    Manual Series storage for custom aggregation.
+  </Card>
+  <Card title="API limits" href="/reference/api-limits">
+    64-Series budget shared with stateful aggregators.
+  </Card>
+</CardGroup>

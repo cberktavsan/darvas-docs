@@ -1,0 +1,94 @@
+---
+title: "Volume indicators"
+description: "ta.vwap, ta.obv, ta.accdist, ta.mfi - volume-based analysis functions."
+---
+
+## `ta.vwap(price, volume)` - Cumulative VWAP
+
+Returns the volume-weighted average price from the first bar of the window to the current bar. Cumulative - it grows with each bar.
+
+```js
+// overlay = true
+plot("VWAP", null, { color: "#f59e0bFF", linewidth: 2 });
+
+onBar(() => {
+  plot("VWAP", ta.vwap(ctx.close, ctx.volume));
+});
+```
+
+<Note>
+  `ta.vwap` is cumulative over the entire loaded bar window, not anchored to session open. For session-anchored VWAP, reset manually using a `Series` and `ta.cum`.
+</Note>
+
+## `ta.obv(close, volume)` - On-Balance Volume
+
+Running sum: adds volume on up bars, subtracts on down bars. Indicates whether volume is flowing into or out of an asset.
+
+```js
+// overlay = false
+plot("OBV", null, { color: "#22c55eFF" });
+
+onBar(() => {
+  plot("OBV", ta.obv(ctx.close, ctx.volume));
+});
+```
+
+## `ta.accdist(close, high, low, volume)` - Accumulation/Distribution
+
+Weighted cumulative volume indicator. Uses the close location value (CLV) to determine how much of the volume was accumulation vs distribution.
+
+```js
+plot("A/D", null, { color: "#3b82f6FF" });
+
+onBar(() => {
+  plot("A/D", ta.accdist(ctx.close, ctx.high, ctx.low, ctx.volume));
+});
+```
+
+## `ta.mfi(high, low, close, volume, length)` - Money Flow Index
+
+Bounded 0-100 oscillator that combines price and volume. Often called "volume-weighted RSI". Overbought > 80, oversold < 20.
+
+```js
+// overlay = false
+hline(80, { color: "#ef4444FF", style: "dashed" });
+hline(20, { color: "#22c55eFF", style: "dashed" });
+plot("MFI", null, { color: "#a78bfaFF" });
+
+onBar(() => {
+  plot("MFI", ta.mfi(ctx.high, ctx.low, ctx.close, ctx.volume, 14));
+});
+```
+
+## Volume trend analysis
+
+Combining OBV with its own moving average to detect volume divergence:
+
+```js
+plot("OBV",     null, { color: "#22c55eFF" });
+plot("OBV SMA", null, { color: "#22c55e60" });
+
+onBar(() => {
+  const obv = ta.obv(ctx.close, ctx.volume);
+  const obvSma = ta.sma(() => obv, 20);
+  plot("OBV",     obv);
+  plot("OBV SMA", obvSma);
+
+  // OBV above its SMA = bullish volume trend
+  bgcolor(obv > obvSma ? "#22c55e10" : "#ef444410");
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Oscillators" href="/ta/oscillators">
+    RSI and MACD for non-volume oscillators.
+  </Card>
+  <Card title="Aggregators" href="/ta/aggregators">
+    ta.cum for custom cumulative calculations.
+  </Card>
+  <Card title="Bar context" href="/essentials/bar-context">
+    ctx.volume source function.
+  </Card>
+</CardGroup>

@@ -1,0 +1,121 @@
+---
+title: "Marker"
+description: "Marker(key, opts) places a persistent icon shape - circle, diamond, arrow, etc. - at a bar/price coordinate."
+---
+
+## Signature
+
+```ts
+Marker(key, opts) -> handle
+```
+
+A `Marker` is a persistent keyed icon entity. It differs from `plot(..., { style: "circles" })` - plot circles are per-bar time-series values; a Marker is a static annotation that you explicitly create and manage.
+
+## Quick example
+
+```js
+const buyMarker = Marker("buy-signal", {
+  x: 10, y: 42000,
+  shape: "triangle_up",
+  size: 10.0,
+  color: "#22c55eFF",
+});
+```
+
+## Options
+
+<ParamField path="x" type="number" required>
+  X coordinate as a bar index.
+</ParamField>
+
+<ParamField path="y" type="number" required>
+  Y coordinate as a price level.
+</ParamField>
+
+<ParamField path="shape" type="string" required>
+  Icon shape. One of: `"circle"`, `"square"`, `"triangle_up"`, `"triangle_down"`, `"diamond"`, `"cross"`, `"x"`, `"arrow_up"`, `"arrow_down"`.
+</ParamField>
+
+<ParamField path="size" type="number">
+  Size in pixels. Default: `8.0`.
+</ParamField>
+
+<ParamField path="color" type="string">
+  Marker color as `#RRGGBBAA`.
+</ParamField>
+
+<ParamField path="zIndex" type="number">
+  Stacking order. Default: `0`.
+</ParamField>
+
+<ParamField path="forceOverlay" type="boolean">
+  Render in main price pane from a sub-pane indicator. Default: `false`.
+</ParamField>
+
+## Shape enum values
+
+| Value | Appearance |
+| --- | --- |
+| `"circle"` | Filled circle |
+| `"square"` | Filled square |
+| `"triangle_up"` | Triangle pointing up |
+| `"triangle_down"` | Triangle pointing down |
+| `"diamond"` | Diamond / rhombus |
+| `"cross"` | Plus sign (+) |
+| `"x"` | X shape |
+| `"arrow_up"` | Arrow pointing up |
+| `"arrow_down"` | Arrow pointing down |
+
+You can also use `shape.*` constants:
+
+```js
+Marker("sig", { ..., shape: shape.diamond });
+```
+
+## Handle methods
+
+```js
+marker.set({ shape: "triangle_up", color: "#22c55eFF" });
+marker.clone("buy-signal-2");
+marker.delete();
+```
+
+## Marker vs plot circles
+
+<Note>
+  `Marker` (persistent entity) and `plot(..., { style: "circles" })` (per-bar time-series) look similar but behave differently. Use `Marker` for manual annotations anchored to a specific historical bar. Use plot circles when you want a computed value at every bar evaluated by `onBar`.
+</Note>
+
+## Signal annotation example
+
+```js
+onBar(() => {
+  const rsi = ta.rsi(ctx.close, 14);
+  if (na(rsi)) return;
+
+  if (ta.crossunder(ta.rsi(ctx.close, 14), 30)) {
+    // RSI crossed below 30 - bullish oversold signal
+    Marker(`os_${ctx.i()}`, {
+      x: ctx.i(),
+      y: ctx.low() * 0.998,
+      shape: "arrow_up",
+      size: 12,
+      color: "#22c55eFF",
+    });
+  }
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Label" href="/entities/label">
+    Text annotations at a point.
+  </Card>
+  <Card title="Plot styles" href="/plotting/plot-styles">
+    circles and arrowup/arrowdown plot styles for per-bar markers.
+  </Card>
+  <Card title="Constants" href="/entities/constants">
+    shape.* enum values.
+  </Card>
+</CardGroup>

@@ -1,0 +1,107 @@
+---
+title: "NaN handling"
+description: "na() and nz() handle missing and null values safely. NaN propagates through arithmetic - learn to catch it early."
+---
+
+## The missing-value problem
+
+OHLCV accessors return `null` when data is unavailable (e.g. before the lookback window is filled). Technical indicator functions also return `NaN` during their warmup period. Both values need to be handled before use in downstream math.
+
+## Function reference
+
+<ParamField path="na()" type="boolean">
+  Zero-argument form: returns `true` if no value has been set yet in the current context. Rarely used directly.
+</ParamField>
+
+<ParamField path="na(x)" type="boolean">
+  One-argument form: returns `true` if `x` is `null` or `NaN`. Use this to guard before arithmetic.
+  ```js
+  const c = ctx.close();
+  if (na(c)) return; // skip bars with no data
+  ```
+</ParamField>
+
+<ParamField path="nz(x, fallback?)" type="number">
+  Returns `fallback` (default `0`) if `x` is `null` or `NaN`; otherwise returns `x`.
+  ```js
+  const rsi = ta.rsi(ctx.close, 14);
+  const safe = nz(rsi, 50); // use 50 as neutral during warmup
+  ```
+</ParamField>
+
+## Two modes of `na`
+
+```js
+// Mode 1 - zero args: check for unset state (rare)
+if (na()) {
+  console.log("Nothing set yet");
+}
+
+// Mode 2 - one arg: check a specific value
+const v = ctx.close();
+if (na(v)) {
+  console.log("close is null or NaN");
+}
+```
+
+## Why NaN propagates
+
+JavaScript `NaN` is infectious - any arithmetic involving `NaN` produces `NaN`:
+
+```js
+NaN + 1     // NaN
+NaN * 0     // NaN
+Math.max(1, NaN)  // NaN
+```
+
+<Note>
+  `NaN + 1 === NaN`. If you pass a `NaN` into your calculation chain, every downstream result will also be `NaN`. Use `na(x)` or `nz(x)` to break the chain early.
+</Note>
+
+## Practical patterns
+
+```js
+onBar(() => {
+  const rsi = ta.rsi(ctx.close, 14);
+
+  // Pattern 1: skip the bar entirely if indicator is not ready
+  if (na(rsi)) return;
+
+  // Pattern 2: substitute a neutral default
+  const safeRsi = nz(rsi, 50);
+
+  // Pattern 3: conditional plot (NaN plots as a gap in line charts)
+  plot("RSI", na(rsi) ? NaN : rsi);
+});
+```
+
+## NaN coordinates render nothing
+
+For [drawing entities](/entities/overview), assigning `NaN` or `null` to any coordinate (x1, y1, etc.) causes the entity to render as invisible. No error is raised - it simply disappears silently.
+
+```js
+onBar(() => {
+  const ph = ta.pivothigh(ctx.high, 5, 5);
+  if (na(ph)) return; // no pivot this bar - skip Line creation
+
+  Line(`ph_${ctx.i()}`, {
+    x1: ctx.i() - 5, y1: ph,
+    x2: ctx.i() + 5, y2: ph,
+    color: "#22c55eFF",
+  });
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Bar context" href="/essentials/bar-context">
+    OHLCV accessors that return null during warmup.
+  </Card>
+  <Card title="Series" href="/essentials/series">
+    Series.get() during warmup also returns NaN.
+  </Card>
+  <Card title="Gotchas" href="/reference/gotchas">
+    Silent NaN propagation and invisible entities.
+  </Card>
+</CardGroup>

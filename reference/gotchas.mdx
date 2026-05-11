@@ -1,0 +1,123 @@
+---
+title: "Gotchas"
+description: "Common traps: same-key entity invalidation, NaN coordinate silence, Marker vs plot circles, LineFill source immutability, and more."
+---
+
+## Same-key recreate invalidates old handles
+
+If you call `Line("my-line", opts)` twice, the second call allocates a new generation. Any handle from the first call silently no-ops on `.set()` or `.delete()` - its generation no longer matches the slot.
+
+```js
+// Wrong: handle is stale after recreate
+const line = Line("sr", { x1: 0, y1: 100, x2: 10, y2: 100, color: "#22c55eFF" });
+Line("sr", { x1: 0, y1: 95, x2: 10, y2: 95, color: "#ef4444FF" }); // new gen
+line.set({ color: "#a78bfaFF" }); // SILENTLY no-ops - old gen
+
+// Correct: always capture the new handle
+let line = Line("sr", { x1: 0, y1: 100, x2: 10, y2: 100, color: "#22c55eFF" });
+line = Line("sr", { x1: 0, y1: 95, x2: 10, y2: 95, color: "#ef4444FF" });
+line.set({ color: "#a78bfaFF" }); // works
+```
+
+## LineFill source keys are immutable
+
+A `LineFill` cannot be retargeted to different `Line` entities after creation. To change source lines, delete the fill and create a new one.
+
+```js
+// Wrong: trying to update source lines
+fill.lineA = newLine; // LineFill fields are internal - this has no effect
+
+// Correct: delete + recreate
+fill.delete();
+const fill2 = LineFill("my-fill", newLineA, newLineB, { color: "#22c55e30" });
+```
+
+## Silent NaN coordinate rendering
+
+Assigning `NaN`, `Infinity`, or `null` to any coordinate in a Line, Box, Label, or Marker causes the entity to become invisible. No error is raised, no console warning - it just disappears.
+
+```js
+// If pivotHigh is NaN, this line becomes invisible silently
+Line("ph", { x1: pivotBar, y1: pivotHigh, x2: ctx.i(), y2: pivotHigh, color: "#ef4444FF" });
+
+// Guard first:
+if (!na(pivotHigh)) {
+  Line("ph", { x1: pivotBar, y1: pivotHigh, x2: ctx.i(), y2: pivotHigh, color: "#ef4444FF" });
+}
+```
+
+## Persistent Marker vs per-bar plot circles
+
+These look similar but behave completely differently:
+
+| | `Marker` entity | `plot(..., { style: "circles" })` |
+| --- | --- | --- |
+| Type | Persistent, keyed | Per-bar time-series |
+| Creation | Explicit factory call | Emitted every `onBar` |
+| Position | Fixed at creation coordinate | One dot per bar |
+| Use case | Manual annotation on specific bars | Algorithmic per-bar output |
+
+Mixing them up is a common source of confusion. Use `Marker` for annotations on specific confirmed historical bars; use plot circles for recurring computed signals.
+
+## NaN arithmetic propagation
+
+JavaScript `NaN` is infectious - any math operation on `NaN` returns `NaN`:
+
+```js
+NaN + 1     // NaN
+NaN * 0     // NaN
+NaN > 50    // false (comparison with NaN is always false)
+NaN === NaN // false
+```
+
+Use `na(x)` or `nz(x, fallback)` to break the chain:
+
+```js
+const rsi = ta.rsi(ctx.close, 14);
+const safe = nz(rsi, 50); // 50 during warmup, real value after
+```
+
+## plot() registration must be top-level
+
+`plot(name, null, opts)` registers the plot series. If you only call `plot(name, value)` inside `onBar` without the top-level registration, the visual options (color, linewidth, style) default to chart theme values and can produce unexpected rendering.
+
+Always pair every `onBar` plot call with a top-level registration:
+
+```js
+// Top level: register with options
+plot("RSI", null, { color: "#a78bfaFF", linewidth: 2 });
+
+// onBar: emit value
+onBar(() => {
+  plot("RSI", ta.rsi(ctx.close, 14));
+});
+```
+
+## Entity budget truncation is silent
+
+When you exceed the 500-per-type or 1500-total entity limit, the oldest entities are silently truncated. The chart looks correct for recent bars but missing for old bars. Check the Console panel for budget warning messages.
+
+## Handles are shallow
+
+A handle `{ __key, __gen, __kind }` does not hold the entity state - it holds a reference to the slot. Two handles pointing to the same key+gen both mutate the same underlying entity:
+
+```js
+const h1 = Line("x", { x1: 0, y1: 0, x2: 1, y2: 1, color: "#22c55eFF" });
+const h2 = h1; // h2 is the same handle object
+h2.set({ color: "#ef4444FF" }); // mutates the same entity
+// h1's color is also now #ef4444FF - same entity
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Troubleshooting" href="/reference/troubleshooting">
+    Error messages and fixes.
+  </Card>
+  <Card title="Entities overview" href="/entities/overview">
+    Slot model and handle API in depth.
+  </Card>
+  <Card title="NaN handling" href="/essentials/nan-handling">
+    na() and nz() reference.
+  </Card>
+</CardGroup>

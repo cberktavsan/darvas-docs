@@ -1,0 +1,94 @@
+---
+title: "Bollinger Bands"
+description: "Full working Bollinger Bands indicator with width band shading using Series and LineFill."
+---
+
+## What this builds
+
+- Upper and lower Bollinger Bands (SMA +/- 2 standard deviations)
+- Basis (middle) line
+- Band shading using `fill()` on the plot handles
+- Bandwidth oscillator in a sub-pane
+
+## Full script
+
+```js
+// overlay = true
+const length = input.int("Length", 20, { min: 2, max: 500 });
+const mult   = input.float("StdDev Mult", 2.0, { min: 0.1, max: 10, step: 0.1 });
+const src    = input.source("Source", "close");
+
+const upperPlot  = plot("BB Upper",  null, { color: "#3b82f6FF", linewidth: 1 });
+const middlePlot = plot("BB Basis",  null, { color: "#3b82f680", linewidth: 1 });
+const lowerPlot  = plot("BB Lower",  null, { color: "#3b82f6FF", linewidth: 1 });
+
+fill(upperPlot, lowerPlot, { color: "#3b82f615" });
+
+onBar(() => {
+  const bb = ta.bb(src, length, mult);
+  if (na(bb.upper)) return;
+
+  plot("BB Upper",  bb.upper);
+  plot("BB Basis",  bb.middle);
+  plot("BB Lower",  bb.lower);
+});
+```
+
+## With %B and bandwidth in sub-pane
+
+```js
+// overlay = true
+const length = input.int("Length", 20, { min: 2 });
+const mult   = input.float("Mult", 2.0, { min: 0.1 });
+const src    = input.source("Source", "close");
+
+const upperP = plot("BB Upper", null, { color: "#3b82f6FF" });
+const lowerP = plot("BB Lower", null, { color: "#3b82f6FF" });
+plot("BB Middle", null, { color: "#3b82f650" });
+
+fill(upperP, lowerP, { color: "#3b82f615" });
+
+// %B and bandwidth require their own sub-pane plots
+plot("BB %B",    null, { color: "#f59e0bFF" });
+plot("BB Width", null, { color: "#a78bfaFF" });
+
+hline(1, { color: "#ef4444FF", style: "dashed" });
+hline(0, { color: "#22c55eFF", style: "dashed" });
+
+onBar(() => {
+  const bb = ta.bb(src, length, mult);
+  if (na(bb.upper)) return;
+
+  plot("BB Upper",  bb.upper);
+  plot("BB Middle", bb.middle);
+  plot("BB Lower",  bb.lower);
+
+  // %B: where is price within the band?
+  const width   = bb.upper - bb.lower;
+  const pctB    = width > 0 ? (src() - bb.lower) / width : 0.5;
+  const bbWidth = width / bb.middle * 100;
+
+  plot("BB %B",    pctB);
+  plot("BB Width", bbWidth);
+});
+```
+
+## Key notes
+
+- `ta.bb` returns `NaN` during the warmup period (first `length - 1` bars). Guard with `if (na(bb.upper)) return`.
+- `fill(upperP, lowerP, { color })` shades between the two plot handles - pass the return values from `plot()` directly.
+- The `%B` value is 1.0 at the upper band, 0.0 at the lower band, and 0.5 at the middle. Values outside [0, 1] indicate price is beyond the bands.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Volatility" href="/ta/volatility">
+    ta.bb and ta.keltner reference.
+  </Card>
+  <Card title="hline, fill, bgcolor" href="/plotting/hline-fill-bgcolor">
+    fill() syntax and budget.
+  </Card>
+  <Card title="NaN handling" href="/essentials/nan-handling">
+    Why na(bb.upper) check is needed.
+  </Card>
+</CardGroup>

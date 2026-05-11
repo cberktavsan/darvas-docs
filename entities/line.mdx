@@ -1,0 +1,140 @@
+---
+title: "Line"
+description: "Line(key, opts) draws a persistent line segment between two bar/price coordinates on the chart."
+---
+
+## Signature
+
+```ts
+Line(key, opts) -> handle
+```
+
+`key` is a unique string identifying this line's slot. Calling `Line` with the same key replaces the prior line. See [entities overview](/entities/overview) for the slot model.
+
+## Quick example
+
+```js
+const support = Line("support", {
+  x1: 0,  y1: 42000,
+  x2: 50, y2: 42000,
+  color: "#22c55eFF",
+  width: 2,
+  style: "solid",
+  label: "Support",
+});
+
+onBar(() => {
+  // Extend the line to the current bar
+  support.set({ x2: ctx.i() });
+});
+```
+
+## Options
+
+<ParamField path="x1" type="number" required>
+  Start x coordinate as a bar index.
+</ParamField>
+
+<ParamField path="y1" type="number" required>
+  Start y coordinate as a price level.
+</ParamField>
+
+<ParamField path="x2" type="number" required>
+  End x coordinate as a bar index.
+</ParamField>
+
+<ParamField path="y2" type="number" required>
+  End y coordinate as a price level.
+</ParamField>
+
+<ParamField path="color" type="string">
+  Line color as `#RRGGBBAA` hex. Default: chart accent color.
+</ParamField>
+
+<ParamField path="width" type="number">
+  Line width in pixels. Default: `1`.
+</ParamField>
+
+<ParamField path="style" type="string">
+  Line style. One of: `"solid"`, `"dotted"`, `"dashed"`, `"arrow.right"`, `"arrow.left"`, `"arrow.both"`. Default: `"solid"`.
+</ParamField>
+
+<ParamField path="label" type="string">
+  Optional text label rendered near the line midpoint.
+</ParamField>
+
+<ParamField path="zIndex" type="number">
+  Stacking order. Higher values render on top. Default: `0`.
+</ParamField>
+
+<ParamField path="forceOverlay" type="boolean">
+  When `true`, renders in the main price pane even if the indicator is on a sub-pane. Default: `false`.
+</ParamField>
+
+## Style enum values
+
+| Value | Description |
+| --- | --- |
+| `"solid"` | Continuous line |
+| `"dotted"` | Dotted line |
+| `"dashed"` | Dashed line |
+| `"arrow.right"` | Arrowhead at the end (x2, y2) |
+| `"arrow.left"` | Arrowhead at the start (x1, y1) |
+| `"arrow.both"` | Arrowheads at both ends |
+
+You can also use the `linestyle.*` constants:
+
+```js
+Line("trend", { ..., style: linestyle.dashed });
+```
+
+## Handle methods
+
+```js
+const line = Line("sr", { x1: 0, y1: 42000, x2: 10, y2: 42000, color: "#22c55eFF" });
+
+// Mutate in place
+line.set({ color: "#ef4444FF", y1: 41800, y2: 41800 });
+
+// Clone to a new key
+const copy = line.clone("sr-copy");
+
+// Delete
+line.delete();
+```
+
+## Dynamic S/R line example
+
+```js
+// Draw an arrow.right line from each new pivot high
+onBar(() => {
+  const ph = ta.pivothigh(ctx.high, 5, 5);
+  if (na(ph)) return;
+
+  const pivotBar = ctx.i() - 5; // pivot high is 5 bars in the past
+  Line(`ph_${pivotBar}`, {
+    x1: pivotBar, y1: ph,
+    x2: ctx.i(),  y2: ph,
+    color: "#ef4444FF",
+    style: "arrow.right",
+    label: str.format("{}", math.round(ph, 1)),
+  });
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="LineFill" href="/entities/linefill">
+    Shade the area between two Line entities.
+  </Card>
+  <Card title="Box" href="/entities/box">
+    Rectangular zone - use when you need width and height.
+  </Card>
+  <Card title="Constants" href="/entities/constants">
+    linestyle.* enum values.
+  </Card>
+  <Card title="Support/resistance example" href="/examples/support-resistance">
+    Full working example using Line entities.
+  </Card>
+</CardGroup>

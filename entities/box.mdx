@@ -1,0 +1,148 @@
+---
+title: "Box"
+description: "Box(key, opts) draws a persistent rectangle with fill color, border, optional text, and directional extension."
+---
+
+## Signature
+
+```ts
+Box(key, opts) -> handle
+```
+
+A Box occupies a rectangular region defined by two bar/price corners. Common uses: order blocks, fair value gaps, supply/demand zones, consolidation ranges.
+
+## Quick example
+
+```js
+const ob = Box("order-block", {
+  x1: 5,   y1: 100,
+  x2: 15,  y2: 110,
+  color: "#a78bfa20",
+  borderColor: "#a78bfaFF",
+  borderWidth: 1,
+  extend: "right",
+  text: "Order Block",
+  textColor: "#FFFFFFFF",
+});
+```
+
+## Options
+
+<ParamField path="x1" type="number" required>
+  Left x coordinate (bar index).
+</ParamField>
+
+<ParamField path="y1" type="number" required>
+  Bottom y coordinate (price).
+</ParamField>
+
+<ParamField path="x2" type="number" required>
+  Right x coordinate (bar index).
+</ParamField>
+
+<ParamField path="y2" type="number" required>
+  Top y coordinate (price).
+</ParamField>
+
+<ParamField path="color" type="string">
+  Fill color as `#RRGGBBAA`. Use low alpha for zone overlays (e.g. `#a78bfa20`). Default: transparent.
+</ParamField>
+
+<ParamField path="rounding" type="number">
+  Corner radius in pixels. Default: `0`.
+</ParamField>
+
+<ParamField path="borderColor" type="string">
+  Border color as `#RRGGBBAA`.
+</ParamField>
+
+<ParamField path="borderWidth" type="number">
+  Border width in pixels. Default: `1`.
+</ParamField>
+
+<ParamField path="borderStyle" type="string">
+  `"solid"`, `"dotted"`, or `"dashed"`. Default: `"solid"`.
+</ParamField>
+
+<ParamField path="extend" type="string">
+  Extend the box in a direction. One of: `"none"`, `"left"`, `"right"`, `"up"`, `"down"`, `"both_x"`, `"both_y"`. Default: `"none"`.
+</ParamField>
+
+<ParamField path="text" type="string">
+  Label text rendered inside the box.
+</ParamField>
+
+<ParamField path="textSize" type="string">
+  Font size preset: `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"`, `"auto"`. Default: `"md"`.
+</ParamField>
+
+<ParamField path="textColor" type="string">
+  Text color as `#RRGGBBAA`.
+</ParamField>
+
+<ParamField path="textHAlign" type="string">
+  Horizontal text alignment: `"left"`, `"center"`, `"right"`. Default: `"center"`.
+</ParamField>
+
+<ParamField path="textVAlign" type="string">
+  Vertical text alignment: `"top"`, `"center"`, `"bottom"`. Default: `"center"`.
+</ParamField>
+
+<ParamField path="textWrap" type="string">
+  `"none"` or `"auto"`. Default: `"auto"`.
+</ParamField>
+
+<ParamField path="zIndex" type="number">
+  Stacking order. Default: `0`.
+</ParamField>
+
+<ParamField path="forceOverlay" type="boolean">
+  Render in main price pane even from a sub-pane indicator. Default: `false`.
+</ParamField>
+
+## Handle methods
+
+```js
+box.set({ color: "#22c55e30" }); // change fill color in place
+box.clone("order-block-2");      // copy to new key
+box.delete();                    // remove from chart
+```
+
+## Order block detection example
+
+```js
+// Detect bullish order blocks (bearish bar followed by strong bull move)
+onBar(() => {
+  const prevBear = ctx.open(1) > ctx.close(1);
+  const curBull  = ctx.close() > ctx.open(1); // engulf previous bar
+
+  if (prevBear && curBull) {
+    const barIdx = ctx.i() - 1;
+    Box(`ob_${barIdx}`, {
+      x1: barIdx, y1: ctx.low(1),
+      x2: ctx.i(), y2: ctx.open(1),
+      color: "#22c55e20",
+      borderColor: "#22c55eFF",
+      borderWidth: 1,
+      extend: "right",
+      text: "OB",
+      textColor: "#22c55eFF",
+      textSize: "sm",
+    });
+  }
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Line" href="/entities/line">
+    For lines rather than rectangular zones.
+  </Card>
+  <Card title="Constants" href="/entities/constants">
+    extend.* and size.* enum values.
+  </Card>
+  <Card title="Order blocks example" href="/examples/order-blocks">
+    Full working order block indicator.
+  </Card>
+</CardGroup>

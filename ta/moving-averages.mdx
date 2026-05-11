@@ -1,0 +1,136 @@
+---
+title: "Moving averages"
+description: "ta.sma, ta.ema, ta.rma, ta.wma, ta.hma, ta.vwma, ta.alma, ta.swma, ta.linreg - trend smoothing functions."
+---
+
+## Overview
+
+All moving average functions accept a `source` argument - either a `ctx.*` accessor, an `input.source()` result, or any `(offset?) => number | null` function. They return a scalar at the current bar.
+
+## Functions
+
+### `ta.sma(source, length)` - Simple moving average
+
+Arithmetic mean over `length` bars.
+
+```js
+onBar(() => {
+  plot("SMA20", ta.sma(ctx.close, 20));
+});
+```
+
+### `ta.ema(source, length)` - Exponential moving average
+
+Exponentially weighted, with factor `α = 2 / (length + 1)`. Faster to react than SMA.
+
+```js
+onBar(() => {
+  plot("EMA9",  ta.ema(ctx.close, 9));
+  plot("EMA21", ta.ema(ctx.close, 21));
+});
+```
+
+### `ta.rma(source, length)` - Wilder smoothing
+
+EMA with `α = 1 / length`. Also known as Wilder's Moving Average (RMA). Used internally by `ta.rsi` and `ta.atr`.
+
+```js
+onBar(() => {
+  const gain = math.max(ctx.close() - ctx.close(1), 0);
+  plot("Smoothed gain", ta.rma(() => gain, 14));
+});
+```
+
+### `ta.wma(source, length)` - Weighted moving average
+
+Linearly weighted - most recent bar has the highest weight.
+
+```js
+onBar(() => {
+  plot("WMA14", ta.wma(ctx.close, 14));
+});
+```
+
+### `ta.hma(source, length)` - Hull moving average
+
+Reduces lag by combining WMAs. `HMA = WMA(2*WMA(n/2) - WMA(n), sqrt(n))`.
+
+```js
+onBar(() => {
+  plot("HMA20", ta.hma(ctx.close, 20));
+});
+```
+
+### `ta.vwma(source, volume, length)` - Volume-weighted moving average
+
+Weights each bar by its volume.
+
+```js
+onBar(() => {
+  plot("VWMA20", ta.vwma(ctx.close, ctx.volume, 20));
+});
+```
+
+### `ta.alma(source, length, offset?, sigma?)` - Arnaud Legoux moving average
+
+Gaussian-weighted. `offset` controls the phase (default `0.85`), `sigma` controls smoothing (default `6`).
+
+```js
+onBar(() => {
+  plot("ALMA", ta.alma(ctx.close, 20, 0.85, 6));
+});
+```
+
+### `ta.swma(source)` - Symmetrically weighted moving average
+
+Fixed-length 4-bar average with weights `[1, 2, 2, 1] / 6`.
+
+```js
+onBar(() => {
+  plot("SWMA", ta.swma(ctx.close));
+});
+```
+
+### `ta.linreg(source, length)` - Linear regression value
+
+Returns the current value on the linear regression line fitted to the last `length` bars.
+
+```js
+onBar(() => {
+  plot("LinReg20", ta.linreg(ctx.close, 20));
+});
+```
+
+## Ribbon example
+
+```js
+const lengths = [8, 13, 21, 34, 55];
+
+plot("EMA8",  null, { color: "#22c55eFF" });
+plot("EMA13", null, { color: "#84cc16FF" });
+plot("EMA21", null, { color: "#eab308FF" });
+plot("EMA34", null, { color: "#f97316FF" });
+plot("EMA55", null, { color: "#ef4444FF" });
+
+onBar(() => {
+  plot("EMA8",  ta.ema(ctx.close, 8));
+  plot("EMA13", ta.ema(ctx.close, 13));
+  plot("EMA21", ta.ema(ctx.close, 21));
+  plot("EMA34", ta.ema(ctx.close, 34));
+  plot("EMA55", ta.ema(ctx.close, 55));
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Oscillators" href="/ta/oscillators">
+    RSI, MACD, Stochastic and more.
+  </Card>
+  <Card title="Crossovers" href="/ta/crossovers">
+    Detect when two MAs cross.
+  </Card>
+  <Card title="Bar context" href="/essentials/bar-context">
+    Source function shape reference.
+  </Card>
+</CardGroup>

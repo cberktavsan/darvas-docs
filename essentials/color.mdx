@@ -1,0 +1,95 @@
+---
+title: "color.*"
+description: "Named color constants and color construction functions for styling plots and entities."
+---
+
+## Overview
+
+Colors in the Darvas indicator API are expressed as 8-character hex strings in `#RRGGBBAA` format, where the last two characters are the alpha channel (FF = fully opaque, 00 = fully transparent). The `color` namespace provides named constants and construction helpers.
+
+## Constructing colors
+
+<ParamField path="color.new(hexString, transparency?)" type="string">
+  Create a color from a hex string with optional transparency (0-100, where 100 = fully transparent).
+  ```js
+  color.new("#FF0000", 0)   // fully opaque red: "#FF0000FF"
+  color.new("#FF0000", 50)  // 50% transparent red: "#FF000080"
+  color.new("#FF0000", 100) // invisible: "#FF000000"
+  ```
+</ParamField>
+
+<Note>
+  For the full list of `color.*` functions including `color.rgb`, `color.from_gradient`, `color.r`, `color.g`, `color.b`, and `color.t`, see the [custom indicator spec](https://darvas.app/docs/specs/custom-indicators).
+</Note>
+
+## Named color constants
+
+The runtime exposes 24 named colors via the `color` namespace:
+
+| Constant | Hex |
+| --- | --- |
+| `color.red` | `#ef4444FF` |
+| `color.green` | `#22c55eFF` |
+| `color.blue` | `#3b82f6FF` |
+| `color.yellow` | `#eab308FF` |
+| `color.orange` | `#f97316FF` |
+| `color.purple` | `#a78bfaFF` |
+| `color.white` | `#FFFFFFFF` |
+| `color.black` | `#000000FF` |
+| `color.gray` | `#6b7280FF` |
+| `color.silver` | `#9ca3afFF` |
+| `color.lime` | `#84cc16FF` |
+| `color.teal` | `#14b8a6FF` |
+| `color.cyan` | `#06b6d4FF` |
+| `color.navy` | `#1e40afFF` |
+| `color.maroon` | `#9f1239FF` |
+| `color.fuchsia` | `#d946efFF` |
+| `color.pink` | `#ec4899FF` |
+| `color.rose` | `#f43f5eFF` |
+| `color.amber` | `#f59e0bFF` |
+| `color.emerald` | `#10b981FF` |
+| `color.sky` | `#0ea5e9FF` |
+| `color.violet` | `#8b5cf6FF` |
+| `color.indigo` | `#6366f1FF` |
+| `color.slate` | `#64748bFF` |
+
+## Dynamic coloring example
+
+```js
+const bullColor = input.color("Bull", "#22c55eFF");
+const bearColor = input.color("Bear", "#ef4444FF");
+
+plot("Candle color", null);
+
+onBar(() => {
+  const isBull = ctx.close() >= ctx.open();
+  barcolor(isBull ? bullColor : bearColor);
+  plot("Candle color", ctx.close());
+});
+```
+
+## Transparency with `color.new`
+
+```js
+// RSI overbought zone shading
+const obColor = color.new("#ef4444", 80); // very faint red fill
+
+onBar(() => {
+  const rsi = ta.rsi(ctx.close, 14);
+  bgcolor(rsi > 70 ? obColor : null);
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Plot basics" href="/plotting/plot-basics">
+    color option for plot series.
+  </Card>
+  <Card title="hline, fill, bgcolor" href="/plotting/hline-fill-bgcolor">
+    bgcolor and barcolor use the same color format.
+  </Card>
+  <Card title="Line entity" href="/entities/line">
+    Entity colors also use #RRGGBBAA format.
+  </Card>
+</CardGroup>

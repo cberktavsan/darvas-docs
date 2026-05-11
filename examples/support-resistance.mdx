@@ -1,0 +1,103 @@
+---
+title: "Support and resistance"
+description: "Auto-detect S/R levels via ta.pivothigh/pivotlow and draw them as forward-projecting arrow.right Line entities."
+---
+
+## What this builds
+
+- Automatic swing high and swing low detection
+- Each pivot gets a `Line` entity with `style: "arrow.right"` that projects forward
+- Price label on each line
+
+## Full script
+
+```js
+// overlay = true
+const leftBars  = input.int("Left bars",  5, { min: 1, max: 50 });
+const rightBars = input.int("Right bars", 5, { min: 1, max: 50 });
+const lineLen   = input.int("Line length (bars)", 50, { min: 5 });
+const maxLines  = input.int("Max lines", 20, { min: 1, max: 50 });
+
+const resistColor = input.color("Resistance color", "#ef4444CC");
+const supportColor = input.color("Support color",   "#22c55eCC");
+
+onBar(() => {
+  const ph = ta.pivothigh(ctx.high, leftBars, rightBars);
+  const pl = ta.pivotlow(ctx.low,   leftBars, rightBars);
+
+  const pivotBar = ctx.i() - rightBars;
+
+  if (!na(ph)) {
+    Line(`sr_high_${pivotBar}`, {
+      x1: pivotBar,
+      y1: ph,
+      x2: pivotBar + lineLen,
+      y2: ph,
+      color: resistColor,
+      width: 1,
+      style: "arrow.right",
+      label: str.format("{}", math.round(ph, 1)),
+    });
+  }
+
+  if (!na(pl)) {
+    Line(`sr_low_${pivotBar}`, {
+      x1: pivotBar,
+      y1: pl,
+      x2: pivotBar + lineLen,
+      y2: pl,
+      color: supportColor,
+      width: 1,
+      style: "arrow.right",
+      label: str.format("{}", math.round(pl, 1)),
+    });
+  }
+});
+```
+
+## Dynamic keys
+
+Each pivot gets its own unique key (`sr_high_${pivotBar}`) so old lines persist on the chart while new ones are added. This means the chart can accumulate many lines over time - use `maxLines` logic (not shown above) or a fixed-size key pool if you want to cap line count.
+
+## Capping old lines
+
+To limit lines to the most recent `maxLines` pivots, maintain a counter and delete old ones:
+
+```js
+let highCount = 0;
+
+onBar(() => {
+  const ph = ta.pivothigh(ctx.high, 5, 5);
+  if (!na(ph)) {
+    const pivotBar = ctx.i() - 5;
+    const key = `ph_${pivotBar}`;
+
+    Line(key, {
+      x1: pivotBar, y1: ph,
+      x2: pivotBar + 50, y2: ph,
+      color: "#ef4444CC",
+      style: "arrow.right",
+    });
+
+    highCount++;
+
+    // Delete the line from 50 pivots ago
+    const oldBar = pivotBar - 50 * 5; // approximate
+    Line(`ph_${oldBar}`, { x1: 0, y1: 0, x2: 0, y2: 0, color: "#00000000" });
+  }
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Pivots" href="/ta/pivots">
+    ta.pivothigh/pivotlow - the lag explained.
+  </Card>
+  <Card title="Line entity" href="/entities/line">
+    Full Line options including arrow.right style.
+  </Card>
+  <Card title="str.*" href="/essentials/str">
+    str.format for price labels.
+  </Card>
+</CardGroup>

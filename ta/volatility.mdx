@@ -1,0 +1,112 @@
+---
+title: "Volatility"
+description: "ta.atr, ta.stdev, ta.variance, ta.dev, ta.bb, ta.keltner - volatility measurement functions."
+---
+
+## `ta.atr(high, low, close, length)` - Average True Range
+
+Wilder-smoothed (RMA) average of the true range. Returns a positive scalar representing volatility in price units.
+
+```js
+onBar(() => {
+  const atr = ta.atr(ctx.high, ctx.low, ctx.close, 14);
+  plot("ATR14", atr);
+});
+```
+
+## `ta.stdev(source, length)` - Standard deviation
+
+Population standard deviation of `source` over `length` bars.
+
+```js
+onBar(() => {
+  plot("StDev20", ta.stdev(ctx.close, 20));
+});
+```
+
+## `ta.variance(source, length)` - Variance
+
+Square of the standard deviation: `stdev^2`.
+
+```js
+onBar(() => {
+  plot("Variance", ta.variance(ctx.close, 20));
+});
+```
+
+## `ta.dev(source, length)` - Mean absolute deviation
+
+Average absolute distance from the mean. Less sensitive to outliers than standard deviation.
+
+```js
+onBar(() => {
+  plot("MAD", ta.dev(ctx.close, 20));
+});
+```
+
+## `ta.bb(source, length, mult)` - Bollinger Bands
+
+Returns `{ upper, middle, lower }`. `middle` is the SMA; `upper`/`lower` are `middle ± mult * stdev`.
+
+```js
+const upper = plot("BB Upper", null, { color: "#3b82f6FF" });
+const lower = plot("BB Lower", null, { color: "#3b82f6FF" });
+plot("BB Middle", null, { color: "#3b82f680" });
+fill(upper, lower, { color: "#3b82f615" });
+
+onBar(() => {
+  const bb = ta.bb(ctx.close, 20, 2);
+  if (na(bb.upper)) return;
+  plot("BB Upper",  bb.upper);
+  plot("BB Middle", bb.middle);
+  plot("BB Lower",  bb.lower);
+});
+```
+
+## `ta.keltner(source, high, low, close, length, mult)` - Keltner Channel
+
+Returns `{ upper, middle, lower }`. `middle` is the EMA of `source`; bands are `middle ± mult * ATR`.
+
+```js
+plot("KC Upper",  null, { color: "#f59e0bFF" });
+plot("KC Lower",  null, { color: "#f59e0bFF" });
+plot("KC Middle", null, { color: "#f59e0b80" });
+
+onBar(() => {
+  const kc = ta.keltner(ctx.close, ctx.high, ctx.low, ctx.close, 20, 1.5);
+  if (na(kc.upper)) return;
+  plot("KC Upper",  kc.upper);
+  plot("KC Middle", kc.middle);
+  plot("KC Lower",  kc.lower);
+});
+```
+
+## Squeeze momentum setup
+
+Combining BB and Keltner to detect low-volatility "squeeze":
+
+```js
+onBar(() => {
+  const bb = ta.bb(ctx.close, 20, 2);
+  const kc = ta.keltner(ctx.close, ctx.high, ctx.low, ctx.close, 20, 1.5);
+  if (na(bb.upper) || na(kc.upper)) return;
+
+  // Squeeze = BB inside KC
+  const squeeze = bb.upper < kc.upper && bb.lower > kc.lower;
+  bgcolor(squeeze ? "#a78bfa15" : null);
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Bollinger Bands example" href="/examples/bollinger-bands">
+    Full working BB indicator with band shading.
+  </Card>
+  <Card title="Oscillators" href="/ta/oscillators">
+    Momentum and oscillator functions.
+  </Card>
+  <Card title="Aggregators" href="/ta/aggregators">
+    ta.highest and ta.lowest for range-based calculations.
+  </Card>
+</CardGroup>

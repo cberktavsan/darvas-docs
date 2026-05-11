@@ -1,0 +1,120 @@
+---
+title: "Performance tips"
+description: "How to write fast custom indicators that stay within the 50ms per-bar and 10s total runtime budgets."
+---
+
+## Why performance matters
+
+The indicator runtime evaluates every historical bar before rendering. On a 100K-bar window, a 50ms-per-bar budget would theoretically allow 5000 seconds - but the **total run budget is 10s**. At 100K bars, you have ~0.1ms effective budget per bar before hitting the total limit.
+
+## Tip 1: Prefer `ta.*` over manual loops
+
+All `ta.*` functions are implemented in Rust inside the sandbox host. They run orders of magnitude faster than equivalent JavaScript loops.
+
+```js
+// Slow: manual sum in JS
+onBar(() => {
+  let sum = 0;
+  for (let i = 0; i < 20; i++) {
+    sum += nz(ctx.close(i), 0);
+  }
+  plot("Manual SMA", sum / 20);
+});
+
+// Fast: Rust-native
+onBar(() => {
+  plot("SMA", ta.sma(ctx.close, 20));
+});
+```
+
+## Tip 2: Reuse source identity for memoization
+
+`ta.*` functions memoize their results per source function identity. If you pass the same function reference, the result from the previous bar is reused internally.
+
+```js
+// Good: stable reference - ta.* can reuse prior computation
+const src = input.source("Source", "close");
+onBar(() => {
+  const ema = ta.ema(src, 20); // src is the same object every bar
+});
+
+// Bad: new wrapper each bar - disables memoization
+onBar(() => {
+  const ema = ta.ema((o) => src(o), 20); // different function object every bar
+});
+```
+
+Pass `ctx.close`, `ctx.high`, etc. directly - not as wrapped arrow functions.
+
+## Tip 3: Avoid Series proliferation
+
+Each `Series` consumes memory and lookup overhead. Prefer built-in `ta.*` functions that already maintain internal state.
+
+```js
+// Unnecessary Series usage
+const closeSeries = Series("close");
+onBar(() => {
+  closeSeries.set(ctx.close());
+  const sma = ta.sma(() => closeSeries.get, 20); // roundabout
+});
+
+// Direct: no extra Series needed
+onBar(() => {
+  const sma = ta.sma(ctx.close, 20); // ctx.close already is a source
+});
+```
+
+## Tip 4: Watch the 100K bar warmup cost
+
+Indicators loaded on high-frequency pairs (1m candles on BTC) can have up to 100K historical bars. Expensive per-bar work multiplies:
+
+- A single `Math.sqrt` call per bar = ~0.01ms; across 100K bars = ~1s
+- Avoid nested loops; even O(n) JavaScript can be slow at 100K bars
+
+Use `ctx.isLast()` to gate expensive operations to the realtime bar only:
+
+```js
+onBar(() => {
+  const fast = ta.ema(ctx.close, 9);
+  const slow = ta.ema(ctx.close, 21);
+  plot("Fast", fast);
+  plot("Slow", slow);
+
+  // Only log on the last bar, not every historical bar
+  if (ctx.isLast()) {
+    console.log(str.format("Current spread: {}", math.round(fast - slow, 2)));
+  }
+});
+```
+
+## Tip 5: Minimize entity creation in `onBar`
+
+Creating a `Line` or `Box` on every bar using a dynamic key (`Line(`key_${ctx.i()}`, ...)`) can quickly fill the 500-per-type entity budget on a 100K bar window. Use pivot-based triggers (only create on confirmed pivots) or a fixed pool of keys.
+
+## Tip 6: Guard NaN early
+
+Returning early from `onBar` when indicators are in warmup avoids cascading computation:
+
+```js
+onBar(() => {
+  const rsi = ta.rsi(ctx.close, 14);
+  if (na(rsi)) return; // skip all downstream work during warmup
+
+  const bb = ta.bb(ctx.close, 20, 2);
+  // ... rest of logic
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="API limits" href="/reference/api-limits">
+    All runtime budgets in one table.
+  </Card>
+  <Card title="Gotchas" href="/reference/gotchas">
+    Common mistakes that waste computation.
+  </Card>
+  <Card title="Troubleshooting" href="/reference/troubleshooting">
+    TIMEOUT errors and how to fix them.
+  </Card>
+</CardGroup>

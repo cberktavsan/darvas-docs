@@ -1,0 +1,104 @@
+---
+title: "Pivots"
+description: "ta.pivothigh and ta.pivotlow detect swing highs and lows - but the result is lagged by rightBars bars."
+---
+
+## Functions
+
+### `ta.pivothigh(source, leftBars, rightBars)`
+
+Returns the pivot high value if the bar at `rightBars` ago is higher than all `leftBars` bars before it and all `rightBars` bars after it. Returns `NaN` otherwise.
+
+### `ta.pivotlow(source, leftBars, rightBars)`
+
+Returns the pivot low value under the same symmetric condition.
+
+## The lag
+
+<Warning>
+  Pivot functions look `rightBars` into the future relative to the candidate bar. This means the result at the current bar corresponds to the pivot candidate at `rightBars` bars in the past. You cannot detect a pivot on the bar it forms - you only know after `rightBars` additional bars have closed.
+</Warning>
+
+```js
+onBar(() => {
+  const ph = ta.pivothigh(ctx.high, 5, 5);
+  // If ph is not NaN, the pivot HIGH occurred at bar ctx.i() - 5
+  if (!na(ph)) {
+    const pivotBar = ctx.i() - 5;
+    Line(`ph_${pivotBar}`, {
+      x1: pivotBar, y1: ph,
+      x2: ctx.i(), y2: ph,
+      color: "#ef4444FF",
+      style: "arrow.right",
+    });
+  }
+});
+```
+
+## Parameters
+
+<ParamField path="source" type="(offset?) => number | null" required>
+  Source function. Typically `ctx.high` for pivot highs, `ctx.low` for pivot lows.
+</ParamField>
+
+<ParamField path="leftBars" type="number" required>
+  Number of bars to the left that must be lower (for pivothigh) or higher (for pivotlow).
+</ParamField>
+
+<ParamField path="rightBars" type="number" required>
+  Number of bars to the right that must be lower/higher. This is also the lag: the pivot result is known `rightBars` after the candidate bar.
+</ParamField>
+
+## Basic example
+
+```js
+// overlay = true
+onBar(() => {
+  const ph = ta.pivothigh(ctx.high, 5, 5);
+  const pl = ta.pivotlow(ctx.low, 5, 5);
+
+  if (!na(ph)) {
+    Marker(`ph_${ctx.i()}`, {
+      x: ctx.i() - 5,
+      y: ph,
+      shape: "triangle_down",
+      color: "#ef4444FF",
+      size: 8,
+    });
+  }
+
+  if (!na(pl)) {
+    Marker(`pl_${ctx.i()}`, {
+      x: ctx.i() - 5,
+      y: pl,
+      shape: "triangle_up",
+      color: "#22c55eFF",
+      size: 8,
+    });
+  }
+});
+```
+
+## Choosing left/right bars
+
+| `leftBars` = `rightBars` | Effect |
+| --- | --- |
+| 2-3 | Very sensitive, many pivots, noisy |
+| 5 | Standard - good balance |
+| 10+ | Few pivots, only major swings |
+
+Asymmetric values are allowed (`pivothigh(ctx.high, 3, 8)`) but less common.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Support/resistance example" href="/examples/support-resistance">
+    Full indicator using pivothigh/pivotlow + Line entities.
+  </Card>
+  <Card title="Aggregators" href="/ta/aggregators">
+    ta.highest/lowest for simpler range detection.
+  </Card>
+  <Card title="NaN handling" href="/essentials/nan-handling">
+    na() check before using pivot results.
+  </Card>
+</CardGroup>

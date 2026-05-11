@@ -1,0 +1,84 @@
+---
+title: "Plot basics"
+description: "plot() declares a time-series output and emits per-bar values. The two-step registration + emission pattern is fundamental to the API."
+---
+
+## Signature
+
+```ts
+plot(name, value, opts?) // returns a handle { id, name }
+```
+
+`plot` is both a **declaration** (top-level) and an **emission** (inside `onBar`). The name is the unique identifier - the same name ties the declaration to the per-bar writes.
+
+## Two-step pattern
+
+```js
+// Step 1: top-level declaration - register the series and set visual options
+plot("MA", null, { color: "#22c55eFF", linewidth: 2 });
+
+// Step 2: inside onBar - write the value at the current bar
+onBar(() => {
+  plot("MA", ta.sma(ctx.close, 20));
+});
+```
+
+You can also write the value directly in the top-level declaration (rarely useful):
+
+```js
+// Single-call form (only useful for constant horizontal lines - prefer hline for that)
+plot("Zero", 0, { color: "#6b7280FF" });
+```
+
+## Return value
+
+`plot()` returns a handle `{ id, name }` you can pass to `fill()`:
+
+```js
+const upperPlot = plot("Upper", null, { color: "#22c55eFF" });
+const lowerPlot = plot("Lower", null, { color: "#ef4444FF" });
+fill(upperPlot, lowerPlot, { color: "#22c55e20" });
+```
+
+## Options
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `string` | chart default | `#RRGGBBAA` hex color |
+| `linewidth` | `number` | `1` | Line width in pixels |
+| `style` | `string` | `"line"` | See [Plot styles](/plotting/plot-styles) |
+| `display` | `boolean` | `true` | Whether to render this plot |
+
+## Emitting NaN for gaps
+
+Plots accept `NaN` or `null` as a value - this produces a gap in the rendered line (no data point at that bar):
+
+```js
+onBar(() => {
+  const rsi = ta.rsi(ctx.close, 14);
+  // Only plot when RSI is in overbought/oversold territory
+  plot("Signal", rsi > 70 || rsi < 30 ? rsi : NaN);
+});
+```
+
+## Budget
+
+Maximum **64 plot series** per indicator. Exceeding this limit raises an error at evaluation time.
+
+<Note>
+  `hline`, `fill`, `bgcolor`, and `barcolor` count separately from plot series. See [API limits](/reference/api-limits) for all budgets.
+</Note>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Plot styles" href="/plotting/plot-styles">
+    All 12 style values: line, histogram, area, circles, arrows and more.
+  </Card>
+  <Card title="hline, fill, bgcolor" href="/plotting/hline-fill-bgcolor">
+    Complementary drawing primitives.
+  </Card>
+  <Card title="API limits" href="/reference/api-limits">
+    64-plot budget and other runtime constraints.
+  </Card>
+</CardGroup>

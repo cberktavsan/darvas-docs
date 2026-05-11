@@ -1,0 +1,82 @@
+---
+title: "Editor walkthrough"
+description: "Tour of the Darvas custom-indicator script editor in /terminal."
+---
+
+## Opening the editor
+
+Navigate to `/terminal`, then click **Add indicator** in the chart toolbar and select **Custom** from the dropdown. The script editor opens in a side panel on the right.
+
+<Steps>
+  <Step title="Find the editor">
+    Go to `/terminal`. Click the indicator button in the chart toolbar and choose **Custom indicator**. The editor panel slides in from the right.
+  </Step>
+  <Step title="Write your script">
+    The editor is a full CodeMirror 6 instance with JavaScript syntax highlighting, bracket matching, and automatic indentation. Autocomplete fires on `.` (dot access) and `Ctrl+Space`. Hover any built-in name to see its signature.
+  </Step>
+  <Step title="Adjust input parameters">
+    The **Inputs** panel below the editor renders one form control per `input.*` call in your script. Change values there - no need to edit the code for common tuning like length or color.
+  </Step>
+  <Step title="Preview on chart">
+    Click **Add to chart** to evaluate the current script against all visible bars and render the output as a draft overlay. This does not save the indicator - it is a live preview only.
+  </Step>
+  <Step title="Save for reuse">
+    Click **Save indicator** to persist the script under a name. Saved indicators appear in your indicator library and can be added to any pair/timeframe.
+  </Step>
+  <Step title="Inspect console output">
+    The **Console** panel at the bottom of the editor shows any `console.log` / `console.warn` output and runtime errors. Output is capped at 100 lines x 200 characters per line.
+  </Step>
+</Steps>
+
+## CodeMirror features
+
+| Feature | How to use |
+| --- | --- |
+| Autocomplete | Type `.` after a namespace (`ta.`, `math.`, `ctx.`) or press `Ctrl+Space` |
+| Syntax errors | Red squiggles + error message in the Console panel on evaluation |
+| Error markers | The offending line gets a red gutter marker; click to see the full message |
+| Multi-cursor | `Alt+Click` to add cursors; `Ctrl+D` to select the next occurrence |
+| Comment toggle | `Ctrl+/` to comment/uncomment the selected lines |
+
+## Inputs panel
+
+Every `input.*` call at the top level registers a parameter that the Inputs panel renders as a form control:
+
+| Input type | Control |
+| --- | --- |
+| `input.int` / `input.float` | Number spinner with optional min/max/step |
+| `input.bool` | Checkbox |
+| `input.string` with `options` | Dropdown select |
+| `input.string` without `options` | Text field |
+| `input.color` | Color picker |
+| `input.source` | OHLCV source dropdown (open, high, low, close, hl2, hlc3, ohlc4) |
+
+<Note>
+  `input.*` calls inside `onBar` throw a `RuntimeError`. All parameter declarations must be at the top level of your script.
+</Note>
+
+## Draft vs persisted
+
+- **Add to chart** - evaluates the current editor contents as a temporary draft. The draft is stored in browser `localStorage` keyed by the pair (e.g. `BTC-USDT-SWAP`). Only one draft per pair is stored at a time; adding a new draft for the same pair replaces the old one.
+- **Save indicator** - persists the script server-side under a name. Saved indicators survive page reloads, work across devices, and can be added to multiple pairs simultaneously.
+
+<Warning>
+  Browser draft persistence is limited to one indicator per pair. If you switch pairs before saving, your unsaved draft will be overwritten when you come back to the original pair and run a new evaluation.
+</Warning>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Script lifecycle" href="/essentials/script-lifecycle">
+    Understand what runs once vs. once per bar.
+  </Card>
+  <Card title="Inputs" href="/essentials/inputs">
+    Full reference for all input types and options.
+  </Card>
+  <Card title="Quickstart" href="/quickstart">
+    Write your first indicator in 5 minutes.
+  </Card>
+  <Card title="Console and limits" href="/reference/api-limits">
+    Log caps and runtime budgets.
+  </Card>
+</CardGroup>

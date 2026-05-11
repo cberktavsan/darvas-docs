@@ -1,0 +1,139 @@
+---
+title: "Entity constants"
+description: "linestyle.*, shape.*, size.*, extend.*, text.align.*, and text.wrap.* enum values for drawing entities."
+---
+
+## Overview
+
+The Darvas indicator runtime exposes several enum namespaces for entity options. You can use the string literals directly (e.g. `"solid"`) or the named constants (e.g. `linestyle.solid`) - they are equivalent.
+
+## `linestyle.*` - Line and border styles
+
+| Constant | String value | Used by |
+| --- | --- | --- |
+| `linestyle.solid` | `"solid"` | Line, Box border |
+| `linestyle.dotted` | `"dotted"` | Line, Box border |
+| `linestyle.dashed` | `"dashed"` | Line, Box border |
+| `linestyle.arrow_right` | `"arrow.right"` | Line only |
+| `linestyle.arrow_left` | `"arrow.left"` | Line only |
+| `linestyle.arrow_both` | `"arrow.both"` | Line only |
+
+```js
+Line("trend", {
+  x1: 0, y1: 100, x2: 20, y2: 110,
+  style: linestyle.dashed,
+  color: "#22c55eFF",
+});
+```
+
+## `shape.*` - Marker shapes
+
+| Constant | String value |
+| --- | --- |
+| `shape.circle` | `"circle"` |
+| `shape.square` | `"square"` |
+| `shape.triangle_up` | `"triangle_up"` |
+| `shape.triangle_down` | `"triangle_down"` |
+| `shape.diamond` | `"diamond"` |
+| `shape.cross` | `"cross"` |
+| `shape.x` | `"x"` |
+| `shape.arrow_up` | `"arrow_up"` |
+| `shape.arrow_down` | `"arrow_down"` |
+
+```js
+Marker("signal", {
+  x: ctx.i(), y: ctx.low(),
+  shape: shape.triangle_up,
+  size: 10,
+  color: "#22c55eFF",
+});
+```
+
+## `size.*` - Text size presets
+
+Used for `textSize` in Box and for Label `size` (as a numeric value - size.* is string-only for Box).
+
+| Constant | String value |
+| --- | --- |
+| `size.xs` | `"xs"` - extra small |
+| `size.sm` | `"sm"` - small |
+| `size.md` | `"md"` - medium (default) |
+| `size.lg` | `"lg"` - large |
+| `size.xl` | `"xl"` - extra large |
+| `size.auto` | `"auto"` - auto-fit |
+
+```js
+Box("zone", {
+  x1: 0, y1: 100, x2: 10, y2: 110,
+  text: "Demand",
+  textSize: size.sm,
+});
+```
+
+## `extend.*` - Box extension directions
+
+| Constant | String value | Effect |
+| --- | --- | --- |
+| `extend.none` | `"none"` | No extension (default) |
+| `extend.left` | `"left"` | Extend left to chart edge |
+| `extend.right` | `"right"` | Extend right to current bar |
+| `extend.up` | `"up"` | Extend upward |
+| `extend.down` | `"down"` | Extend downward |
+| `extend.both_x` | `"both_x"` | Extend left and right |
+| `extend.both_y` | `"both_y"` | Extend up and down |
+
+```js
+Box("supply", {
+  x1: 5, y1: 105, x2: 10, y2: 110,
+  extend: extend.right, // box grows forward in time
+  color: "#ef444420",
+});
+```
+
+## `text.align.*` - Text alignment
+
+### Horizontal alignment
+
+| Constant | String value |
+| --- | --- |
+| `text.align.left` | `"left"` |
+| `text.align.center` | `"center"` |
+| `text.align.right` | `"right"` |
+
+### Vertical alignment
+
+| Constant | String value |
+| --- | --- |
+| `text.align.top` | `"top"` |
+| `text.align.center` | `"center"` |
+| `text.align.bottom` | `"bottom"` |
+
+```js
+Box("zone", {
+  x1: 0, y1: 100, x2: 10, y2: 110,
+  text: "FVG",
+  textHAlign: text.align.right,
+  textVAlign: text.align.top,
+});
+```
+
+## `text.wrap.*` - Text wrapping
+
+| Constant | String value |
+| --- | --- |
+| `text.wrap.none` | `"none"` |
+| `text.wrap.auto` | `"auto"` |
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Line" href="/entities/line">
+    Uses linestyle.* for the style option.
+  </Card>
+  <Card title="Box" href="/entities/box">
+    Uses extend.*, size.*, and text.align.*.
+  </Card>
+  <Card title="Marker" href="/entities/marker">
+    Uses shape.* for the shape option.
+  </Card>
+</CardGroup>

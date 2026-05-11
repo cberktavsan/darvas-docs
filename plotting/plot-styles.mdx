@@ -1,0 +1,170 @@
+---
+title: "Plot styles"
+description: "All 12 plot style values for the style option: line, stepline, histogram, area, circles, arrows and more."
+---
+
+## Setting a style
+
+Pass a `style` string in the options object at the top-level declaration:
+
+```js
+plot("Hist", null, { style: "histogram", color: "#a78bfaFF" });
+```
+
+## All 12 styles
+
+### `line` (default)
+
+Continuous line connecting each bar's value.
+
+```js
+plot("SMA", null, { style: "line", color: "#22c55eFF", linewidth: 2 });
+```
+
+### `stepline`
+
+Horizontal segment to next bar, then vertical jump. Classic staircase.
+
+```js
+plot("Step", null, { style: "stepline", color: "#f59e0bFF" });
+```
+
+### `stepline_diamond`
+
+Step line with diamond markers at each vertex.
+
+```js
+plot("StepDiamond", null, { style: "stepline_diamond", color: "#a78bfaFF" });
+```
+
+### `histogram`
+
+Vertical bars from 0 to the value. Positive values grow up, negative values grow down.
+
+```js
+plot("MACD Hist", null, { style: "histogram", color: "#22c55e80" });
+```
+
+### `columns`
+
+Alias for `histogram`. Identical rendering.
+
+```js
+plot("Strength", null, { style: "columns", color: "#3b82f680" });
+```
+
+### `area`
+
+Filled area between the line and 0 (clamped at zero).
+
+```js
+plot("Volume area", null, { style: "area", color: "#22c55e40" });
+```
+
+### `areabr`
+
+Area on baseline - not clamped to 0; fills between the value and the chart baseline.
+
+```js
+plot("ATR band", null, { style: "areabr", color: "#ef444430" });
+```
+
+### `linebr`
+
+Line on baseline. Similar to `areabr` but no fill.
+
+```js
+plot("Linebr", null, { style: "linebr", color: "#6b7280FF" });
+```
+
+### `circles`
+
+Discrete dots at each bar's value. No connecting line.
+
+```js
+plot("RSI dots", null, { style: "circles", color: "#f59e0bFF" });
+```
+
+### `cross`
+
+Cross marker (`+`) at each bar's value. No connecting line.
+
+```js
+plot("Pivot", null, { style: "cross", color: "#a78bfaFF" });
+```
+
+### `arrowup`
+
+Arrow pointing up when `value > 0`, down when `value < 0`. Good for signal markers.
+
+```js
+plot("Buy sig", null, {
+  style: "arrowup",
+  colorUp: "#22c55eFF",
+  colorDown: "#ef4444FF",
+  size: 8,
+});
+```
+
+### `arrowdown`
+
+Arrow pointing down when `value > 0`, up when `value < 0`.
+
+```js
+plot("Sell sig", null, {
+  style: "arrowdown",
+  colorUp: "#ef4444FF",
+  colorDown: "#22c55eFF",
+  size: 8,
+});
+```
+
+## Arrow-specific options
+
+| Option | Type | Description |
+| --- | --- | --- |
+| `colorUp` | `string` | Color when value > 0 |
+| `colorDown` | `string` | Color when value <= 0 |
+| `size` | `number` | Arrow size in pixels |
+
+```js
+plot("Signal", null, {
+  style: "arrowup",
+  colorUp: "#22c55eFF",
+  colorDown: "#ef4444FF",
+  size: 10,
+});
+
+onBar(() => {
+  const rsi = ta.rsi(ctx.close, 14);
+  const crossOb = ta.crossunder(ta.rsi(ctx.close, 14), 70);
+  plot("Signal", crossOb ? 1 : NaN);
+});
+```
+
+## Histogram with per-bar color
+
+For histograms where you want different colors for positive/negative values:
+
+```js
+plot("MACD Hist", null, {
+  style: "histogram",
+  colorUp: "#22c55e80",
+  colorDown: "#ef444480",
+  histbase: 0,
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Plot basics" href="/plotting/plot-basics">
+    Signature, registration, and emission pattern.
+  </Card>
+  <Card title="MACD histogram example" href="/examples/macd-histogram">
+    Complete MACD with histogram + line plots.
+  </Card>
+  <Card title="color.*" href="/essentials/color">
+    Color format reference.
+  </Card>
+</CardGroup>

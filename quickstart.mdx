@@ -1,0 +1,69 @@
+---
+title: "Quickstart"
+description: "Render your first custom indicator on a Darvas chart in 5 minutes."
+---
+
+## 1. Open the indicator editor
+
+In Darvas, open `/terminal`, click **Add indicator** in the chart sidebar, and select **Custom indicator**. The script editor opens with a default template.
+
+## 2. Paste this script
+
+```js
+const len = input.int("Length", 14);
+const src = input.source("Source", "close");
+
+plot("MA", null, { color: "#22c55eFF", linewidth: 2 });
+plot("Diff", null, { color: "#a78bfaFF", style: "histogram" });
+
+onBar(() => {
+  const ma = ta.sma(src, len);
+  plot("MA", ma);
+  plot("Diff", ctx.close() - ma);
+});
+```
+
+## 3. Click "Add to chart"
+
+The script runs against the visible bars. You will see two new series on your chart pane: a moving average overlay (`MA`) and a histogram of the close-minus-MA distance (`Diff`).
+
+## 4. Iterate
+
+Edit the script, change `len` from `14` to `50`, click **Add to chart** again. The chart redraws with the new parameter. Your draft lives in the browser until you save it.
+
+## Anatomy of the script
+
+```js
+// Top-level: runs ONCE when the script is loaded.
+const len = input.int("Length", 14);    // user-tweakable parameter
+plot("MA", null, { color: "#22c55eFF" }); // declare a series and its style
+
+// onBar: runs ONCE PER BAR. This is where computation happens.
+onBar(() => {
+  const ma = ta.sma(src, len);   // compute SMA at this bar
+  plot("MA", ma);                // emit the value for this bar
+});
+```
+
+Top-level state (the `const`s above) persists across bars via JavaScript closures. `onBar` reads them on every bar.
+
+<Note>
+  Top-level code runs **once**. `onBar` runs **per bar**. If you compute something in the top-level body that depends on `ctx.close()`, it will be the close at script-init time (usually the first bar) - almost never what you want. Put per-bar logic inside `onBar`.
+</Note>
+
+## Where to next
+
+<CardGroup cols={2}>
+  <Card title="Editor walkthrough" icon="window" href="/editor-walkthrough">
+    Tour the script editor and inputs panel.
+  </Card>
+  <Card title="Plot styles" icon="chart-bar" href="/plotting/plot-styles">
+    Histogram, area, arrows, circles, and more.
+  </Card>
+  <Card title="Drawing entities" icon="pen-ruler" href="/entities/overview">
+    Persistent S/R lines, FVG boxes, order blocks.
+  </Card>
+  <Card title="Series and history" icon="chart-area" href="/essentials/series">
+    Access prior-bar values like Pine's `x[1]`.
+  </Card>
+</CardGroup>

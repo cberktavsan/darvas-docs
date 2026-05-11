@@ -1,0 +1,136 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Darvas",
+  "description": "Custom indicators documentation for Darvas - write your own technical analysis scripts in JavaScript with a Pine Script-like API.",
+  "colors": {
+    "primary": "#50aefb",
+    "light": "#7bc1fc",
+    "dark": "#2a8ada"
+  },
+  "appearance": {
+    "default": "dark",
+    "strict": false
+  },
+  "background": {
+    "decoration": "grid",
+    "color": {
+      "light": "#fafafa",
+      "dark": "#0d0f13"
+    }
+  },
+  "fonts": {
+    "family": "Inter"
+  },
+  "favicon": "/favicon.svg",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "editor-walkthrough"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "essentials/script-lifecycle",
+              "essentials/inputs",
+              "essentials/bar-context",
+              "essentials/nan-handling",
+              "essentials/series"
+            ]
+          },
+          {
+            "group": "Plotting",
+            "pages": [
+              "plotting/plot-basics",
+              "plotting/plot-styles",
+              "plotting/hline-fill-bgcolor"
+            ]
+          },
+          {
+            "group": "Drawing Entities",
+            "pages": [
+              "entities/overview",
+              "entities/line",
+              "entities/box",
+              "entities/label",
+              "entities/marker",
+              "entities/linefill",
+              "entities/constants"
+            ]
+          },
+          {
+            "group": "Technical Analysis",
+            "pages": [
+              "ta/moving-averages",
+              "ta/oscillators",
+              "ta/volatility",
+              "ta/aggregators",
+              "ta/crossovers",
+              "ta/volume",
+              "ta/pivots"
+            ]
+          },
+          {
+            "group": "Utility Namespaces",
+            "pages": [
+              "essentials/math",
+              "essentials/str",
+              "essentials/color"
+            ]
+          },
+          {
+            "group": "Examples",
+            "pages": [
+              "examples/bollinger-bands",
+              "examples/rsi-divergence",
+              "examples/support-resistance",
+              "examples/order-blocks",
+              "examples/macd-histogram"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "reference/api-limits",
+              "reference/performance",
+              "reference/gotchas",
+              "reference/troubleshooting"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg",
+    "href": "https://darvas.app"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Open Darvas",
+        "href": "https://darvas.app/terminal"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Sign up",
+      "href": "https://darvas.app/auth/signup"
+    }
+  },
+  "footer": {
+    "socials": {
+      "x": "https://x.com/darvasapp",
+      "github": "https://github.com/cberktavsan/darvas-docs"
+    }
+  }
+}

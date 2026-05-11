@@ -1,0 +1,132 @@
+---
+title: "Bar context"
+description: "ctx provides OHLCV data, bar metadata, and index information for the current bar inside onBar."
+---
+
+## Overview
+
+`ctx` is a global object available everywhere in your script. Inside `onBar` it reflects the current bar being processed. All OHLCV accessors are **functions** that accept an optional `offset` argument - the number of bars to look back from the current bar.
+
+```js
+onBar(() => {
+  const close  = ctx.close();    // current bar close
+  const prev   = ctx.close(1);   // previous bar close
+  const change = close - prev;
+});
+```
+
+## Bar metadata
+
+<ParamField path="ctx.length" type="number">
+  Total number of bars in the current window.
+</ParamField>
+
+<ParamField path="ctx.bar" type="string">
+  Current timeframe string, e.g. `"1H"`, `"4H"`, `"1D"`.
+</ParamField>
+
+<ParamField path="ctx.instId" type="string">
+  Current instrument, e.g. `"BTC-USDT-SWAP"`.
+</ParamField>
+
+<ParamField path="ctx.i()" type="number">
+  Current bar index. 0 = oldest bar in window, `ctx.length - 1` = newest.
+</ParamField>
+
+<ParamField path="ctx.barIndex()" type="number">
+  Alias for `ctx.i()`.
+</ParamField>
+
+<ParamField path="ctx.isLast()" type="boolean">
+  `true` when processing the most recent (realtime) bar.
+</ParamField>
+
+## OHLCV accessors
+
+All accessors accept an optional `offset` - bars back from the current bar. `offset = 0` (default) is the current bar; `offset = 1` is the previous bar.
+
+<ParamField path="ctx.open(offset?)" type="number | null">
+  Open price.
+</ParamField>
+
+<ParamField path="ctx.high(offset?)" type="number | null">
+  High price.
+</ParamField>
+
+<ParamField path="ctx.low(offset?)" type="number | null">
+  Low price.
+</ParamField>
+
+<ParamField path="ctx.close(offset?)" type="number | null">
+  Close price.
+</ParamField>
+
+<ParamField path="ctx.volume(offset?)" type="number | null">
+  Volume.
+</ParamField>
+
+<ParamField path="ctx.time(offset?)" type="number | null">
+  Bar open time as unix seconds (UTC).
+</ParamField>
+
+## Composite price accessors
+
+<ParamField path="ctx.hl2(offset?)" type="number | null">
+  `(high + low) / 2`
+</ParamField>
+
+<ParamField path="ctx.hlc3(offset?)" type="number | null">
+  `(high + low + close) / 3` - typical price, commonly used with `ta.cci`.
+</ParamField>
+
+<ParamField path="ctx.ohlc4(offset?)" type="number | null">
+  `(open + high + low + close) / 4`
+</ParamField>
+
+## Passing accessors as sources
+
+The OHLCV accessors are **function references** - they match the `(offset?) => number | null` signature that `ta.*` functions expect as their `source` argument:
+
+```js
+// Correct: pass ctx.close as a function reference
+const rsi = ta.rsi(ctx.close, 14);
+
+// Correct: input.source returns the same shape
+const src = input.source("Source", "close");
+const rsi2 = ta.rsi(src, 14);
+
+// Wrong: calling ctx.close() gives you a scalar, not a source
+// const rsi3 = ta.rsi(ctx.close(), 14); // TypeError
+```
+
+## Example: multi-bar lookback
+
+```js
+onBar(() => {
+  const c0 = ctx.close();   // current close
+  const c3 = ctx.close(3);  // close 3 bars ago
+
+  // Detect 3-bar momentum
+  const momentum = c0 - c3;
+  plot("3-bar Momentum", momentum);
+
+  // Log bar info on last bar
+  if (ctx.isLast()) {
+    console.log(ctx.instId, ctx.bar, "index:", ctx.i());
+  }
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Inputs" href="/essentials/inputs">
+    input.source returns the same function shape.
+  </Card>
+  <Card title="Moving averages" href="/ta/moving-averages">
+    ta.* functions that accept a source parameter.
+  </Card>
+  <Card title="NaN handling" href="/essentials/nan-handling">
+    What to do when ctx.close returns null.
+  </Card>
+</CardGroup>

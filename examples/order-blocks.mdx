@@ -1,0 +1,132 @@
+---
+title: "Order blocks"
+description: "Detect order blocks (engulfing bars with volume confirmation) and draw them as Box entities that extend forward."
+---
+
+## What this builds
+
+- Bullish order blocks: bearish bar followed by a bullish engulf with above-average volume
+- Bearish order blocks: bullish bar followed by a bearish engulf with above-average volume
+- Each block drawn as a `Box` with `extend: "right"` so it projects into future bars
+- Box turns gray when price trades through the level (mitigation)
+
+## Full script
+
+```js
+// overlay = true
+const volMult    = input.float("Volume multiplier", 1.5, { min: 1.0, max: 5.0, step: 0.1 });
+const volLen     = input.int("Volume MA length", 20, { min: 5 });
+const bullColor  = input.color("Bullish OB color", "#22c55e25");
+const bearColor  = input.color("Bearish OB color", "#ef444425");
+const bullBorder = input.color("Bullish border",   "#22c55eFF");
+const bearBorder = input.color("Bearish border",   "#ef4444FF");
+const mitColor   = input.color("Mitigated color",  "#6b728040");
+
+onBar(() => {
+  const vol    = ctx.volume();
+  const volMa  = ta.sma(ctx.volume, volLen);
+  const isHighVol = !na(volMa) && vol > volMa * volMult;
+
+  const prevBear = ctx.open(1) > ctx.close(1);
+  const prevBull = ctx.open(1) < ctx.close(1);
+  const curBull  = ctx.close() > ctx.open();
+  const curBear  = ctx.close() < ctx.open();
+
+  const bullEngulf = prevBear && curBull && ctx.close() > ctx.open(1) && isHighVol;
+  const bearEngulf = prevBull && curBear && ctx.close() < ctx.open(1) && isHighVol;
+
+  const prevBar = ctx.i() - 1;
+
+  if (bullEngulf) {
+    Box(`bull_ob_${prevBar}`, {
+      x1: prevBar,     y1: ctx.low(1),
+      x2: ctx.i() + 1, y2: ctx.open(1),
+      color: bullColor,
+      borderColor: bullBorder,
+      borderWidth: 1,
+      extend: "right",
+      text: "Bull OB",
+      textColor: bullBorder,
+      textSize: "xs",
+      textHAlign: "left",
+      textVAlign: "top",
+    });
+  }
+
+  if (bearEngulf) {
+    Box(`bear_ob_${prevBar}`, {
+      x1: prevBar,     y1: ctx.open(1),
+      x2: ctx.i() + 1, y2: ctx.high(1),
+      color: bearColor,
+      borderColor: bearBorder,
+      borderWidth: 1,
+      extend: "right",
+      text: "Bear OB",
+      textColor: bearBorder,
+      textSize: "xs",
+      textHAlign: "left",
+      textVAlign: "top",
+    });
+  }
+
+  // Mitigation: fade boxes that price has traded through
+  // (Simplified: check if current close is inside any recent box)
+  // For a production indicator, track active OB levels in Series
+});
+```
+
+## Mitigation tracking (advanced)
+
+To detect when price mitigates an OB (trades through it), store the box levels in `Series`:
+
+```js
+const obHigh = Series("ob-high");
+const obLow  = Series("ob-low");
+const obBar  = Series("ob-bar");
+
+onBar(() => {
+  // ... (bullEngulf detection as above)
+
+  if (bullEngulf) {
+    obLow.set(ctx.low(1));
+    obHigh.set(ctx.open(1));
+    obBar.set(ctx.i() - 1);
+  } else {
+    obLow.set(obLow.get(1));
+    obHigh.set(obHigh.get(1));
+    obBar.set(obBar.get(1));
+  }
+
+  // Check mitigation: close trades below OB low
+  const activeObBar = obBar.get();
+  if (!na(activeObBar) && ctx.close() < obLow.get()) {
+    Box(`bull_ob_${activeObBar}`, {
+      x1: activeObBar, y1: obLow.get(),
+      x2: ctx.i(),     y2: obHigh.get(),
+      color: mitColor,
+      borderColor: "#6b7280FF",
+      borderWidth: 1,
+    });
+  }
+});
+```
+
+## Notes
+
+- `extend: "right"` makes the box grow forward in time until explicitly constrained by updating `x2`.
+- Use unique keys (`bull_ob_${prevBar}`) so each detected block gets its own persistent slot.
+- Box entities count toward the [500-per-type entity budget](/reference/api-limits).
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Box entity" href="/entities/box">
+    Full Box options including extend.
+  </Card>
+  <Card title="Series" href="/essentials/series">
+    Tracking active OB levels across bars.
+  </Card>
+  <Card title="API limits" href="/reference/api-limits">
+    500 Box entity budget.
+  </Card>
+</CardGroup>

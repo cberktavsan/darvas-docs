@@ -1,0 +1,56 @@
+---
+title: "Introduction"
+description: "Write your own technical analysis indicators in Darvas using a Pine Script-like JavaScript API."
+---
+
+## What are Darvas Custom Indicators?
+
+Darvas Custom Indicators let you write your own technical analysis scripts in JavaScript and render them directly on your charts. The API is intentionally Pine Script-shaped so seasoned TradingView authors feel at home, while keeping the full power of JavaScript: real loops, real closures, real `if/else`.
+
+```js
+const len = input.int("Length", 14);
+const src = input.source("Source", "close");
+
+plot("MA", null, { color: "#22c55eFF", linewidth: 2 });
+plot("Hist", null, { color: "#a78bfaFF", style: "histogram" });
+
+onBar(() => {
+  const ma = ta.sma(src, len);
+  plot("MA", ma);
+  plot("Hist", ctx.close() - ma);
+});
+```
+
+## What can you build?
+
+<CardGroup cols={2}>
+  <Card title="Moving averages and oscillators" icon="chart-line">
+    SMA, EMA, RSI, MACD, Bollinger Bands, Stochastic, ADX, and 40+ other functions through `ta.*`.
+  </Card>
+  <Card title="Support and resistance lines" icon="ruler-horizontal">
+    Persistent `Line` entities anchored at exact bar coordinates with optional arrowheads.
+  </Card>
+  <Card title="Order blocks and FVG boxes" icon="square-dashed">
+    `Box` entities with fill color, border style, optional text label, and extension.
+  </Card>
+  <Card title="Signal markers and labels" icon="location-dot">
+    Per-bar arrows via `plot.style_arrowup` or persistent `Marker` and `Label` entities.
+  </Card>
+</CardGroup>
+
+## Where to next
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="bolt" href="/quickstart">
+    Write your first indicator in 5 minutes.
+  </Card>
+  <Card title="Script lifecycle" icon="clock-rotate-left" href="/essentials/script-lifecycle">
+    Understand what runs once vs once-per-bar.
+  </Card>
+  <Card title="API reference" icon="book" href="/ta/moving-averages">
+    Browse every available function and entity.
+  </Card>
+  <Card title="Examples" icon="code" href="/examples/bollinger-bands">
+    Read full working indicators you can paste into the editor.
+  </Card>
+</CardGroup>

@@ -1,0 +1,110 @@
+---
+title: "Series"
+description: "Series(name) creates persistent indexed storage that remembers values across bars - essential for stateful calculations."
+---
+
+## What is a Series?
+
+A `Series` is a named array that grows bar by bar. You write a value at the current bar with `.set()` and read past values with `.get(offset)`. Unlike regular JavaScript variables that reset on each `onBar` call, a Series persists across bars.
+
+```js
+const prevEma = Series("prev-ema");
+
+onBar(() => {
+  const ema = ta.ema(ctx.close, 14);
+  const prev = prevEma.get(1); // EMA from previous bar
+
+  // Detect EMA crossing above its own prior value
+  if (!na(prev) && ema > prev) {
+    plot("Signal", ctx.low() - ctx.atr); // placeholder
+  }
+
+  prevEma.set(ema); // store for next bar
+});
+```
+
+## API reference
+
+<ParamField path="Series(name)" type="Series object">
+  Create a named series. Must be called at the **top level** (not inside `onBar`). Up to 64 series per script.
+  ```js
+  const s = Series("my-series");
+  ```
+</ParamField>
+
+<ParamField path="s.set(value)" type="void">
+  Store `value` at the current bar index. Call inside `onBar`.
+  ```js
+  s.set(ctx.close());
+</ParamField>
+
+<ParamField path="s.get(offset?)" type="number">
+  Read the value at `offset` bars back. `offset = 0` (default) is the current bar. Returns `NaN` for bars where `.set()` was never called.
+  ```js
+  const current = s.get();    // current bar
+  const prev    = s.get(1);   // 1 bar ago
+  const twoBack = s.get(2);   // 2 bars ago
+  ```
+</ParamField>
+
+<ParamField path="s.length" type="number">
+  Number of bars where `.set()` has been called.
+</ParamField>
+
+## Budget
+
+- Maximum **64 Series** per script (shared with any hidden series created internally by `ta.barssince` and `ta.cum`).
+- Each series consumes roughly 8 KB per bar in the window.
+- Total budget across all series: ~512 KB per script.
+
+<Warning>
+  Creating Series inside `onBar` mid-execution is allowed syntactically, but the series will have no backfill - it starts empty from the bar it was first created. For correct historical replay, always create Series at the top level.
+</Warning>
+
+## Worked example: crossover detection
+
+```js
+// Detect when the fast EMA crosses above the slow EMA
+const fastSeries = Series("fast-ema");
+const slowSeries = Series("slow-ema");
+
+plot("Fast EMA", null, { color: "#22c55eFF" });
+plot("Slow EMA", null, { color: "#f59e0bFF" });
+plot("Cross", null, { style: "arrowup", colorUp: "#22c55eFF", size: 10 });
+
+onBar(() => {
+  const fast = ta.ema(ctx.close, 9);
+  const slow = ta.ema(ctx.close, 21);
+
+  const prevFast = fastSeries.get(1);
+  const prevSlow = slowSeries.get(1);
+
+  fastSeries.set(fast);
+  slowSeries.set(slow);
+
+  plot("Fast EMA", fast);
+  plot("Slow EMA", slow);
+
+  // Crossover: fast was below slow, now above
+  const crossover = !na(prevFast) && !na(prevSlow) && prevFast < prevSlow && fast > slow;
+  plot("Cross", crossover ? ctx.low() * 0.999 : NaN);
+});
+```
+
+## No-backfill behavior
+
+A Series created mid-script (e.g. inside a conditional block on bar 500) has no values for bars 0-499. `s.get(offset)` returns `NaN` for those bars. Plan accordingly using `na(s.get(...))` guards.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="NaN handling" href="/essentials/nan-handling">
+    Series.get() returns NaN during warmup.
+  </Card>
+  <Card title="Aggregators" href="/ta/aggregators">
+    ta.barssince and ta.cum use internal series with a key.
+  </Card>
+  <Card title="API limits" href="/reference/api-limits">
+    64-series budget shared with stateful aggregators.
+  </Card>
+</CardGroup>

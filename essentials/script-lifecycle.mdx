@@ -1,0 +1,100 @@
+---
+title: "Script lifecycle"
+description: "Top-level code runs once at load; onBar runs once per historical bar and once per realtime update."
+---
+
+## Two phases of execution
+
+Every custom indicator script has two distinct execution phases:
+
+```js
+// PHASE 1: top-level init
+// Runs ONCE when the indicator is first evaluated.
+// Declare inputs, register plots, create Series here.
+
+const length = input.int("Length", 14, { min: 1, max: 200 });
+const src    = input.source("Source", "close");
+
+plot("MA", null, { color: "#22c55eFF", linewidth: 2 });
+
+// PHASE 2: onBar callback
+// Runs ONCE per bar, oldest to newest, then once per realtime tick.
+
+onBar((i) => {
+  const value = ta.sma(src, length);
+  plot("MA", value);
+});
+```
+
+<Note>
+  Top-level code runs once. Per-bar computation goes inside `onBar`. Mixing them up is the most common mistake new authors make.
+</Note>
+
+## The `i` argument
+
+`onBar` receives a single argument `i` - the current bar index (0 = oldest bar in the window, `ctx.length - 1` = newest). It is equivalent to calling `ctx.i()` inside the callback.
+
+```js
+onBar((i) => {
+  // i === ctx.i() === ctx.barIndex()
+  if (i === 0) {
+    console.log("First bar in window");
+  }
+  if (ctx.isLast()) {
+    console.log("Realtime bar");
+  }
+});
+```
+
+## What belongs where
+
+| Top level (runs once) | Inside `onBar` (runs per bar) |
+| --- | --- |
+| `input.*` declarations | `plot(name, value)` - writing values |
+| `plot(name, null, opts)` - series registration | `ta.*` calculations |
+| `Series(name)` creation | Entity `.set()` / `.delete()` calls |
+| `hline(value, opts)` | `bgcolor` / `barcolor` calls |
+| `Line/Box/Label/Marker` initial creation | `console.log` for per-bar debugging |
+
+## Side-effect ordering
+
+1. All `input.*` values are resolved from the Inputs panel (or defaults).
+2. All `plot(name, null, opts)` calls register plot series.
+3. `onBar` callback is registered but not yet invoked.
+4. The runtime replays all historical bars, calling `onBar(i)` for each in ascending bar-index order.
+5. On each realtime update, `onBar(i)` is called again for the current bar.
+
+<Warning>
+  Calling `input.*` inside `onBar` throws a `RuntimeError`. Always declare parameters at the top level.
+</Warning>
+
+## Minimal template
+
+```js
+// overlay = true
+const length = input.int("Length", 14, { min: 1, max: 200 });
+const src    = input.source("Source", "close");
+
+plot("MA", null, { color: "#22c55eFF", linewidth: 2 });
+
+onBar((i) => {
+  plot("MA", ta.sma(src, length));
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Inputs" href="/essentials/inputs">
+    All input types and the form controls they produce.
+  </Card>
+  <Card title="Bar context" href="/essentials/bar-context">
+    ctx.open, ctx.close, ctx.i, ctx.isLast and friends.
+  </Card>
+  <Card title="Series" href="/essentials/series">
+    Persistent indexed storage across bars.
+  </Card>
+  <Card title="Plot basics" href="/plotting/plot-basics">
+    How to register and emit plot values.
+  </Card>
+</CardGroup>

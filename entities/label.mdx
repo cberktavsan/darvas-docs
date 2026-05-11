@@ -1,0 +1,99 @@
+---
+title: "Label"
+description: "Label(key, opts) places a persistent text label pinned to a bar index and price level on the chart."
+---
+
+## Signature
+
+```ts
+Label(key, opts) -> handle
+```
+
+A Label is a text annotation anchored to a specific bar index and price. Unlike Box text, a Label is not confined to a rectangle - it floats at the coordinate you specify.
+
+## Quick example
+
+```js
+const entryLabel = Label("entry", {
+  x: 10, y: 42500,
+  text: "Long entry",
+  color: "#22c55eFF",
+  size: 12.0,
+  textAlign: "center",
+});
+```
+
+## Options
+
+<ParamField path="x" type="number" required>
+  X coordinate as a bar index.
+</ParamField>
+
+<ParamField path="y" type="number" required>
+  Y coordinate as a price level.
+</ParamField>
+
+<ParamField path="text" type="string" required>
+  Text to display.
+</ParamField>
+
+<ParamField path="color" type="string">
+  Text color as `#RRGGBBAA`. Default: white.
+</ParamField>
+
+<ParamField path="size" type="number">
+  Font size in pixels. Default: `12.0`.
+</ParamField>
+
+<ParamField path="textAlign" type="string">
+  Text alignment: `"left"`, `"center"`, `"right"`. Default: `"center"`.
+</ParamField>
+
+<ParamField path="zIndex" type="number">
+  Stacking order. Default: `0`.
+</ParamField>
+
+<ParamField path="forceOverlay" type="boolean">
+  Render in main price pane from a sub-pane indicator. Default: `false`.
+</ParamField>
+
+## Handle methods
+
+```js
+label.set({ text: "Updated", color: "#FFFF00FF" });
+label.clone("entry-alt");
+label.delete();
+```
+
+## Annotating pivot highs
+
+```js
+onBar(() => {
+  const ph = ta.pivothigh(ctx.high, 5, 5);
+  if (na(ph)) return;
+
+  const bar = ctx.i() - 5;
+  Label(`ph_label_${bar}`, {
+    x: bar,
+    y: ph * 1.002, // slightly above the pivot
+    text: str.format("{}", math.round(ph, 0)),
+    color: "#ef4444FF",
+    size: 11,
+    textAlign: "center",
+  });
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Marker" href="/entities/marker">
+    Icon shapes instead of text.
+  </Card>
+  <Card title="str.*" href="/essentials/str">
+    Format numbers into label text with str.format.
+  </Card>
+  <Card title="Box" href="/entities/box">
+    Box also supports embedded text via the text option.
+  </Card>
+</CardGroup>

@@ -1,0 +1,113 @@
+---
+title: "MACD histogram"
+description: "Standard MACD with histogram bars and signal/MACD line plots."
+---
+
+## What this builds
+
+- MACD line (fast EMA - slow EMA)
+- Signal line (EMA of MACD)
+- Histogram (MACD - signal) with green/red coloring
+- Zero line reference
+
+## Full script
+
+```js
+// overlay = false
+const fastLen = input.int("Fast length",   12, { min: 1, group: "MACD" });
+const slowLen = input.int("Slow length",   26, { min: 1, group: "MACD" });
+const sigLen  = input.int("Signal length",  9, { min: 1, group: "MACD" });
+const src     = input.source("Source", "close");
+
+plot("MACD",     null, { color: "#22c55eFF", linewidth: 2 });
+plot("Signal",   null, { color: "#f59e0bFF", linewidth: 2 });
+plot("Histogram", null, {
+  style: "histogram",
+  colorUp:   "#22c55eCC",
+  colorDown: "#ef4444CC",
+});
+
+hline(0, { color: "#6b728060" });
+
+onBar(() => {
+  const m = ta.macd(src, fastLen, slowLen, sigLen);
+  if (na(m.macd)) return;
+
+  plot("MACD",      m.macd);
+  plot("Signal",    m.signal);
+  plot("Histogram", m.hist);
+});
+```
+
+## With divergence coloring
+
+Color the MACD line based on whether it is above or below the signal:
+
+```js
+// overlay = false
+const src = input.source("Source", "close");
+
+plot("MACD",     null, { linewidth: 2 });
+plot("Signal",   null, { color: "#f59e0bFF" });
+plot("Histogram", null, { style: "histogram" });
+
+hline(0, { color: "#6b728060" });
+
+const macdSeries = Series("macd-val");
+
+onBar(() => {
+  const m = ta.macd(src, 12, 26, 9);
+  if (na(m.macd)) return;
+
+  // Color MACD line based on trend
+  const macdColor = m.macd > m.signal ? "#22c55eFF" : "#ef4444FF";
+  // Note: per-bar color changes on 'plot' require re-registering with null each time
+  // For simplicity, use a fixed color and rely on the histogram for the trend signal:
+
+  plot("MACD",      m.macd);
+  plot("Signal",    m.signal);
+  plot("Histogram", m.hist);
+
+  macdSeries.set(m.macd);
+});
+```
+
+## Understanding the return value
+
+`ta.macd` returns an object with three fields:
+
+| Field | Description |
+| --- | --- |
+| `macd` | Fast EMA minus slow EMA |
+| `signal` | EMA of `macd` over `sigLen` bars |
+| `hist` | `macd` minus `signal` |
+
+All three are `NaN` during the warmup period (first `slowLen + sigLen - 2` bars approximately).
+
+## Histogram color tip
+
+The histogram uses `colorUp` and `colorDown` based on whether the value is positive or negative:
+- `hist > 0` (MACD above signal) uses `colorUp`
+- `hist <= 0` (MACD below signal) uses `colorDown`
+
+```js
+plot("Histogram", null, {
+  style: "histogram",
+  colorUp:   "#22c55eCC",  // green bars when MACD > signal
+  colorDown: "#ef4444CC",  // red bars when MACD < signal
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Oscillators" href="/ta/oscillators">
+    ta.macd function reference.
+  </Card>
+  <Card title="Plot styles" href="/plotting/plot-styles">
+    histogram style and colorUp/colorDown options.
+  </Card>
+  <Card title="NaN handling" href="/essentials/nan-handling">
+    Why na(m.macd) check is needed during warmup.
+  </Card>
+</CardGroup>

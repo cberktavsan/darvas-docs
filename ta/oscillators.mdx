@@ -1,0 +1,114 @@
+---
+title: "Oscillators"
+description: "ta.rsi, ta.macd, ta.stoch, ta.cci, ta.mom, ta.roc, ta.dmi - momentum and oscillator functions."
+---
+
+## `ta.rsi(source, length)` - Relative Strength Index
+
+Returns a value between 0-100. Overbought > 70, oversold < 30 by convention.
+
+```js
+// overlay = false
+hline(70, { color: "#ef4444FF", style: "dashed" });
+hline(50, { color: "#6b728060" });
+hline(30, { color: "#22c55eFF", style: "dashed" });
+
+plot("RSI", null, { color: "#a78bfaFF" });
+
+onBar(() => {
+  plot("RSI", ta.rsi(ctx.close, 14));
+});
+```
+
+## `ta.macd(source, fast?, slow?, signal?)` - MACD
+
+Returns an object `{ macd, signal, hist }`. Defaults: fast=12, slow=26, signal=9.
+
+```js
+plot("MACD",   null, { color: "#22c55eFF" });
+plot("Signal", null, { color: "#f59e0bFF" });
+plot("Hist",   null, { style: "histogram" });
+
+onBar(() => {
+  const m = ta.macd(ctx.close, 12, 26, 9);
+  if (na(m.macd)) return;
+  plot("MACD",   m.macd);
+  plot("Signal", m.signal);
+  plot("Hist",   m.hist);
+});
+```
+
+## `ta.stoch(source, high, low, length)` - Stochastic %K
+
+Returns 0-100. Pass close, high, low as the first three sources.
+
+```js
+onBar(() => {
+  const k = ta.stoch(ctx.close, ctx.high, ctx.low, 14);
+  plot("Stoch %K", k);
+});
+```
+
+## `ta.cci(source, length)` - Commodity Channel Index
+
+Typical input is `ctx.hlc3` (typical price). Returns an unbounded oscillator around 0.
+
+```js
+onBar(() => {
+  plot("CCI", ta.cci(ctx.hlc3, 20));
+});
+```
+
+## `ta.mom(source, length)` - Momentum
+
+Current value minus the value `length` bars ago. Unbounded.
+
+```js
+onBar(() => {
+  plot("Momentum", ta.mom(ctx.close, 10));
+});
+```
+
+## `ta.roc(source, length)` - Rate of Change
+
+Percentage change from `length` bars ago: `(close - close[length]) / close[length] * 100`.
+
+```js
+onBar(() => {
+  plot("ROC%", ta.roc(ctx.close, 12));
+});
+```
+
+## `ta.dmi(high, low, close, length)` - Directional Movement Index
+
+Returns `{ plus, minus, adx }`. `plus` = +DI, `minus` = -DI, `adx` = ADX.
+
+```js
+plot("+DI", null, { color: "#22c55eFF" });
+plot("-DI", null, { color: "#ef4444FF" });
+plot("ADX", null, { color: "#f59e0bFF" });
+
+onBar(() => {
+  const d = ta.dmi(ctx.high, ctx.low, ctx.close, 14);
+  plot("+DI",  d.plus);
+  plot("-DI",  d.minus);
+  plot("ADX",  d.adx);
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Moving averages" href="/ta/moving-averages">
+    Trend smoothing functions.
+  </Card>
+  <Card title="Volatility" href="/ta/volatility">
+    ATR, Bollinger Bands, standard deviation.
+  </Card>
+  <Card title="RSI divergence example" href="/examples/rsi-divergence">
+    Full working RSI indicator with divergence detection.
+  </Card>
+  <Card title="MACD histogram example" href="/examples/macd-histogram">
+    Full working MACD implementation.
+  </Card>
+</CardGroup>
