@@ -1,0 +1,42 @@
+---
+title: "Filing Items Requests"
+sidebarTitle: "Items Requests"
+description: "The result of a filing items request that answered 202 while Darvas read the filing."
+openapi: "data-api/openapi.yaml GET /filings/items/requests/{request_id}"
+hideApiMarker: true
+---
+
+## Overview
+
+A `/filings/items` request for a filing Darvas has not read yet answers `202` with a `request_id` and a `result_url`. Polling the `result_url` answers one of three bodies:
+
+| `status` | Meaning | What to do |
+| --- | --- | --- |
+| `processing` | Darvas is reading the filing | Poll again after `Retry-After` seconds |
+| none, the items | The filing is read | The body is the `/filings/items` answer for the first request's parameters |
+| `failed` | SEC EDGAR did not serve the filing, or 5 minutes passed | Send the first request again |
+
+Most filings are read within a few seconds. A request is kept for 30 days; its `result_url` then answers 404.
+
+## Example
+
+```python
+import os
+import time
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+first = requests.get(
+    "https://darvas.app/api/data/v1/filings/items",
+    headers=headers,
+    params={"ticker": "MSFT", "filing_type": "10-K", "year": 1998},
+)
+body = first.json()
+while body.get("status") == "processing":
+    time.sleep(int(first.headers.get("Retry-After", 5)))
+    body = requests.get(first.headers["Location"], headers=headers).json()
+if body.get("status") == "failed":
+    print(body["message"])
+else:
+    print([item["number"] for item in body["items"]])
+```

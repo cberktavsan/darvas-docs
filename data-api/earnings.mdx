@@ -1,0 +1,53 @@
+---
+title: "Earnings"
+sidebarTitle: "Earnings"
+description: "Revenue, EPS, margins and cash flow from each earnings release (8-K) and the 10-Q or 10-K that follows, with their changes."
+openapi: "data-api/openapi.yaml GET /earnings"
+hideApiMarker: true
+---
+
+## Overview
+
+Each entry is one filing that reports a period: the 8-K earnings release first, as soon as SEC accepts it, then the 10-Q or 10-K. Entries come newest period first and, within a period, earliest filing first. `quarterly` holds the quarter's figures and `annual` the year's, when the filing reports the year.
+
+| Coverage | Details |
+| --- | --- |
+| 10-Q and 10-K entries | Every company with XBRL statements, since 2009 |
+| 8-K entries | About half of earnings releases since January 2023; see below |
+| Updated | Within about a minute of SEC acceptance |
+| Page size | 10 filings; `limit` counts periods across pages, up to 40 |
+
+Changes are decimals: `revenue_chg` against the quarter before in `quarterly` and against the year before in `annual`, `revenue_yoy_chg` against the same quarter a year before. Margins are decimals of revenue, and their changes come in basis points (`gross_margin_chg_bps`) and as decimals of the earlier margin (`_chg_pct`). A change that cannot be computed is absent.
+
+`signals` notes year-over-year moves: revenue up or down 10% (strong at 20%), net income and EPS 15% (30%), and margins that move 100 bps. Growth against a loss raises none.
+
+`filing_window` is the market session SEC accepted the filing in, in Eastern Time: `PRE_MARKET` weekdays 04:00 to 09:30, `DURING_MARKET` 09:30 to 16:00, `AFTER_HOURS` the rest of a weekday, `WEEKEND` Saturday and Sunday.
+
+## How release figures are read
+
+Darvas reads the statements of the press release furnished with each 8-K under Item 2.02: the income statement, balance sheet and cash flow statement, mapped to the fields by their labels. A release prints the same period a year before beside the new one, and the company's 10-Q or 10-K has given that year in XBRL. Darvas keeps a release only when that column agrees with the XBRL; the same check gives the scale of a table that states none. A release whose year before the company has not filed keeps its figures when the totals it prints agree. A cash flow statement counts only for the period its columns cover, so a quarter's release with a year-to-date cash flow statement has no quarterly cash flow.
+
+Releases that give their figures only in prose, without statements, have no 8-K entry; their 10-Q or 10-K entry follows. Read against the 10-Qs that followed 160 releases of July and August 2026, the releases Darvas kept agreed on revenue 70 of 70 times, on EPS 27 of 27 and on net income 66 of 75: a release may print a net income other than the parent's.
+
+## Feed
+
+Without `ticker` or `cik`, the answer is the newest earnings filings of every company, newest first: each company's period appears once, with its 10-Q or 10-K once filed and its release until then. `limit` is 10 by default and at most 100.
+
+## Examples
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+url = "https://darvas.app/api/data/v1/earnings"
+
+body = requests.get(url, headers=headers, params={"ticker": "AAPL", "limit": 4}).json()
+for entry in body["earnings"]:
+    quarter = entry.get("quarterly", {})
+    print(entry["report_period"], entry["source_type"], quarter.get("revenue"), quarter.get("revenue_yoy_chg"))
+
+feed = requests.get(url, headers=headers, params={"limit": 20}).json()
+for entry in feed["earnings"]:
+    print(entry["filing_datetime"], entry["ticker"], entry["fiscal_period"], entry["filing_window"])
+```

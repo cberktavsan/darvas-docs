@@ -1,0 +1,38 @@
+---
+title: "Crypto Prices"
+sidebarTitle: "Prices"
+description: "Candles of OKX and Hyperliquid instruments from Darvas's own market data, from one minute to one month."
+openapi: "data-api/openapi.yaml GET /crypto/prices"
+hideApiMarker: true
+---
+
+## Overview
+
+Darvas stores every closed minute of every OKX and Hyperliquid instrument it lists, and builds hours, days, weeks and months from them. This endpoint serves those candles; the minute in progress comes with the newest page.
+
+| Coverage | Details |
+| --- | --- |
+| Venues | OKX (spot, perpetual swaps, futures) and Hyperliquid (perpetuals) |
+| Frames | `minute` × 1, 5, 15, 30; `hour` × 1, 2, 4, 6, 12; `day`, `week`, `month` × 1, in UTC |
+| Updated | Live: the newest minute updates as trades arrive |
+| Page size | 500 candles; `limit` counts across pages, up to 50,000 |
+
+`ticker` is the exchange's own instrument id: `BTC-USDT` is OKX spot, `BTC-USDT-SWAP` the OKX perpetual, `ETH` the Hyperliquid perpetual. Pages go back in time: the first ends at `end_date`, each `next_page_url` continues before it, and the last reaches `start_date`. Each page lists its candles oldest first.
+
+## Examples
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+url = "https://darvas.app/api/data/v1/crypto/prices"
+
+hourly = requests.get(
+    url,
+    headers=headers,
+    params={"ticker": "BTC-USDT-SWAP", "interval": "hour", "interval_multiplier": 4, "start_date": "2026-11-01"},
+).json()
+for candle in hourly["prices"][-3:]:
+    print(candle["time"], candle["close"])
+```

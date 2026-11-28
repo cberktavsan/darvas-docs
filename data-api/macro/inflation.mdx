@@ -1,0 +1,34 @@
+---
+title: "Inflation"
+sidebarTitle: "History"
+description: "Monthly CPI since 1947 and PCE prices since 1959: 14 series with month-over-month and year-over-year changes."
+openapi: "data-api/openapi.yaml GET /macro/inflation"
+hideApiMarker: true
+---
+
+## Overview
+
+One row per month of a series, with the index level and its changes. Pass `series`; the ids are listed by [Inflation Series](/data-api/macro/inflation-series).
+
+| Series | Source |
+| --- | --- |
+| `cpi_all_sa`, `cpi_all_nsa`, `cpi_core_sa`, `cpi_core_nsa` | BLS, CPI-U all items and less food and energy |
+| `cpi_food_sa`, `cpi_energy_sa`, `cpi_shelter_sa`, `cpi_services_less_energy_sa`, `cpi_core_goods_sa` | BLS, CPI-U components |
+| `cpi_apparel_sa`, `cpi_transportation_sa`, `cpi_medical_care_sa` | BLS, CPI-U major groups |
+| `pce_all_sa`, `pce_core_sa` | BEA, PCE price index and PCE less food and energy |
+
+`change_1m_pct` and `change_12m_pct` are percent changes from the prior month and the same month a year earlier, to one decimal. `first_published_value` is the first level Darvas recorded; see [Market Coverage](/data-api/coverage) for what that means for periods before 25 November 2026.
+
+## Example
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+base = "https://darvas.app/api/data/v1/macro"
+
+core = requests.get(f"{base}/inflation", headers=headers, params={"series": "cpi_core_sa", "start_date": "2025-01-01"}).json()
+for month in core["inflation"]:
+    print(month["date"], month["change_12m_pct"])
+```

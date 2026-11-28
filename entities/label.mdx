@@ -1,0 +1,106 @@
+---
+title: "Label"
+description: "Darvas JavaScript: Label(key, opts) places a persistent text bubble at a bar index and price, with a background color and white text."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## Signature
+
+```ts
+Label(key, opts) -> handle
+```
+
+A Label is a text annotation at a bar index and price. The chart draws it as a bubble above the point, with a pointer down to it. Box text stays inside a rectangle. A Label sits at the point you give.
+
+## Quick example
+
+```js
+// overlay = true
+const entryLabel = Label("entry", {
+  x: 10, y: 42500,
+  text: "Long entry",
+  color: "#166534FF",
+  size: 12,
+  textAlign: "center",
+});
+```
+
+## Options
+
+<ParamField path="x" type="number" required>
+  x coordinate as a bar index.
+</ParamField>
+
+<ParamField path="y" type="number" required>
+  y coordinate as a price.
+</ParamField>
+
+<ParamField path="text" type="string">
+  Text to display. Default: `""`.
+</ParamField>
+
+<ParamField path="color" type="string">
+  Background color of the bubble as a hex string. Default: `"#18181b"`. The text is always white, and Label has no text color option.
+</ParamField>
+
+<ParamField path="size" type="number">
+  Font size in pixels. Default: `10`.
+</ParamField>
+
+<ParamField path="textAlign" type="string">
+  Text alignment: `"left"`, `"center"` or `"right"`. Default: `"center"`.
+</ParamField>
+
+<ParamField path="zIndex" type="number">
+  Accepted, but the chart does not use it.
+</ParamField>
+
+<ParamField path="forceOverlay" type="boolean">
+  When `true`, a pane indicator draws the label on the price chart. Default: `false`.
+</ParamField>
+
+Any other option name, such as `textColor`, throws a `TypeError`.
+
+## Handle methods
+
+```js
+entryLabel.set({ text: "Updated", color: "#854d0eFF" });
+entryLabel.clone("entry-alt");
+entryLabel.delete();
+```
+
+## Annotating pivot highs
+
+```js
+// overlay = true
+onBar(() => {
+  const ph = ta.pivothigh(ctx.high, 5, 5);
+  if (na(ph)) return;
+
+  const bar = ctx.i() - 5;
+  Label(`ph_label_${bar}`, {
+    x: bar,
+    y: ph,
+    text: str.tostring(ph, "#.##"),
+    color: "#991b1bFF",
+    size: 11,
+  });
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Marker" href="/entities/marker">
+    Shapes instead of text.
+  </Card>
+  <Card title="str.*" href="/essentials/str">
+    Format numbers into label text with str.format and str.tostring.
+  </Card>
+  <Card title="Box" href="/entities/box">
+    Box text has its own color option.
+  </Card>
+</CardGroup>

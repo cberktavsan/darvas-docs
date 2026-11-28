@@ -1,0 +1,110 @@
+---
+title: "Script lifecycle"
+description: "Darvas JavaScript: top-level code runs once per run, then onBar(i) runs once for each bar from the oldest to the newest."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## Two phases of execution
+
+Every run of a script has two phases:
+
+```js
+// Phase 1: top-level code.
+// Runs once per run. Declare inputs, register plots, create Series here.
+
+const length = input.int("Length", 14);
+const src    = input.source("Source", "close");
+
+plot("MA", null, { color: "#22c55eFF", linewidth: 2 });
+
+// Phase 2: the onBar callback.
+// Runs once per bar, from the oldest bar to the newest.
+
+onBar((i) => {
+  const value = ta.sma(src, length);
+  plot("MA", value);
+});
+```
+
+A run covers at most the newest 1,000 candles of the chart. Each run starts from a clean state. The top-level code runs again, and every Series, plot and drawing starts empty. Nothing runs between two runs, and there is no separate call for a live price update.
+
+Top-level `const` and `let` values stay in scope for every `onBar` call of the same run, because `onBar` is a closure.
+
+<Note>
+  Top-level code runs once. Per-bar computation goes inside `onBar`. At the top level, `ctx.close()` and the other `ctx` accessors read the newest bar of the run, and `ctx.i()` returns `ctx.length - 1`.
+</Note>
+
+## The `i` argument
+
+`onBar` receives one argument, `i`, the current bar index. `0` is the oldest bar of the run and `ctx.length - 1` is the newest. `ctx.i()` and `ctx.barIndex()` return the same number.
+
+```js
+onBar((i) => {
+  // i === ctx.i() === ctx.barIndex()
+  if (i === 0) {
+    // the oldest bar of the run
+  }
+  if (ctx.isLast()) {
+    // the newest bar of the run
+  }
+});
+```
+
+## What belongs where
+
+| Top level (runs once) | Inside `onBar` (runs per bar) |
+| --- | --- |
+| `input.*` declarations | `plot(name, value)` to write a value |
+| `plot(name, null, opts)` to register a plot and its style | `ta.*` calculations |
+| `hline(value, opts)` | `Series.set()` |
+| `fill(plotA, plotB, opts)` | `bgcolor` and `barcolor` calls |
+| `Series(name)` creation | Drawing calls: `Line`, `Box`, `Label`, `Marker`, `LineFill`, `.set()`, `.delete()` |
+
+`hline` and `fill` add one entry for every call, so a call inside `onBar` adds one per bar and passes the limit of 64. `bgcolor` and `barcolor` do nothing at the top level. `Series(name)` also works inside `onBar`, because the same name returns the same storage.
+
+## Order of a run
+
+1. The top-level code runs. Each `input.*` call returns its default value.
+2. `plot(name, null, opts)` calls register plots and their styles.
+3. `onBar(callback)` stores the callback. It does not call it yet.
+4. The runtime calls the callback once for each bar, in ascending bar index order.
+
+<Warning>
+  An `input.*` call inside `onBar` stops the run with the error code `INVALID_REQUEST` and the message "input.* must be declared at top level (not inside onBar)". Declare parameters at the top level.
+</Warning>
+
+## Minimal template
+
+```js
+// overlay = true
+const length = input.int("Length", 14);
+const src    = input.source("Source", "close");
+
+plot("MA", null, { color: "#22c55eFF", linewidth: 2 });
+
+onBar((i) => {
+  plot("MA", ta.sma(src, length));
+});
+```
+
+The `// overlay = true` comment puts the indicator on the price chart. Without it, the indicator gets its own pane.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Inputs" href="/essentials/inputs">
+    Input types, their arguments and their defaults.
+  </Card>
+  <Card title="Bar context" href="/essentials/bar-context">
+    ctx.open, ctx.close, ctx.i, ctx.isLast and the other ctx fields.
+  </Card>
+  <Card title="Series" href="/essentials/series">
+    Persistent indexed storage across bars.
+  </Card>
+  <Card title="Plot basics" href="/plotting/plot-basics">
+    How to register and emit plot values.
+  </Card>
+</CardGroup>

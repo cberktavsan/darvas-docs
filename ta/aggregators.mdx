@@ -1,0 +1,112 @@
+---
+title: "Aggregators"
+description: "Darvas JavaScript: ta.highest, ta.lowest, ta.median, ta.mode and ta.change summarize a window, and ta.barssince and ta.cum keep running state under a key."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## `ta.highest(source, length)`: highest value
+
+The maximum of the last `length` values. A `NaN` in the window gives `NaN`.
+
+```js
+onBar(() => {
+  plot("100-bar High", ta.highest(ctx.high, 100));
+});
+```
+
+## `ta.lowest(source, length)`: lowest value
+
+The minimum of the last `length` values. A `NaN` in the window gives `NaN`.
+
+```js
+onBar(() => {
+  plot("20-bar Low", ta.lowest(ctx.low, 20));
+});
+```
+
+## `ta.median(source, length)`: median
+
+The middle value of the last `length` values, sorted. For an even `length`, the average of the two middle values.
+
+```js
+onBar(() => {
+  plot("Median close", ta.median(ctx.close, 20));
+});
+```
+
+## `ta.mode(source, length)`: most frequent value
+
+Returns the value that appears most often in the last `length` values. On a tie, it returns the tied value that it meets first going back from the current bar. It returns `NaN` only when the window holds a `NaN`.
+
+```js
+plot("Mode", null, { style: "circles", color: "#f59e0bFF" });
+
+onBar(() => {
+  plot("Mode", ta.mode(ctx.close, 10));
+});
+```
+
+## `ta.change(source, length?)`: change over N bars
+
+The current value minus the value `length` bars ago. `length` defaults to `1`.
+
+```js
+onBar(() => {
+  const barChange  = ta.change(ctx.close);     // close minus the previous close
+  const fiveChange = ta.change(ctx.close, 5);  // close minus the close 5 bars ago
+  plot("Bar change", barChange);
+});
+```
+
+## `ta.barssince(key, condition)`: bars since true
+
+Returns the number of bars since `condition` was last true, and `0` on a bar where it is true. It returns `NaN` until `condition` is true for the first time. `key` is a string that names the state of this call.
+
+```js
+onBar(() => {
+  const rsi = ta.rsi(ctx.close, 14);
+  const bars = ta.barssince("rsi-ob", rsi > 70);
+  plot("Bars since OB", bars);
+});
+```
+
+<Note>
+  The `key` must be unique per call site. Two `ta.barssince` calls with the same key overwrite each other's state. Use descriptive keys such as `"rsi-crossover-14"` rather than `"x"`. Call `ta.barssince` on every bar. A bar without a call resets the count to `NaN` until `condition` is true again.
+</Note>
+
+## `ta.cum(key, value)`: cumulative sum
+
+Returns the running sum of `value` since the first bar of the run. An na `value` adds nothing. `key` names the state of this call, as for `ta.barssince`.
+
+```js
+onBar(() => {
+  const upVolume = ctx.close() > ctx.open() ? ctx.volume() : 0;
+  const cumUpVol = ta.cum("up-volume", upVolume);
+  plot("Cum up volume", cumUpVol);
+});
+```
+
+## Stateful aggregator keys and the Series budget
+
+`ta.barssince` and `ta.cum` store their state in a Series named by `key`. Every unique key takes one slot of the [64-Series budget](/reference/api-limits).
+
+<Warning>
+  The key is the Series name itself. `ta.cum("total", v)` and `Series("total")` in the same script share one storage and corrupt each other. Give aggregator keys names that no `Series()` call uses.
+</Warning>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Pivots" href="/ta/pivots">
+    ta.pivothigh and ta.pivotlow for swing points.
+  </Card>
+  <Card title="Series" href="/essentials/series">
+    Manual Series storage for custom aggregation.
+  </Card>
+  <Card title="API limits" href="/reference/api-limits">
+    The 64-Series budget, shared with stateful aggregators.
+  </Card>
+</CardGroup>

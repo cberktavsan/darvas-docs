@@ -1,0 +1,40 @@
+---
+title: "Screener"
+sidebarTitle: "Screener"
+description: "Companies whose newest trailing twelve months match every filter, today or as they were known on a past day."
+openapi: "data-api/openapi.yaml POST /financials/search/screener"
+hideApiMarker: true
+---
+
+## Overview
+
+A screen reads each company's newest trailing twelve months in `currency` and keeps those that match every filter. Companies whose newest period ends more than 180 days before the screen date are left out.
+
+- Fields: every statement field, the ratios one period gives alone (margins, returns, liquidity, leverage, per share), and `sector`, `industry` and `ticker`. [Screener fields](/data-api/financials/search/screener-filters) lists them.
+- Operators: `gt`, `lt`, `gte`, `lte` and `eq` on numbers; `eq` and `in` on text, in any case; `in` takes a list.
+- `order_by` sorts on a numeric field before `limit` applies; without it, results come sorted by ticker. Companies without a value come last.
+- `as_of` screens what was public on that day: each company's newest filing accepted by then. It reaches back to 2010.
+
+`sector` is the SEC office that reviews the company's filings and `industry` its SIC industry, as [company facts](/data-api/company-facts) gives them. They are not GICS classes, which are licensed.
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+body = requests.post(
+    "https://darvas.app/api/data/v1/financials/search/screener",
+    headers=headers,
+    json={
+        "filters": [
+            {"field": "gross_margin", "operator": "gte", "value": 0.5},
+            {"field": "revenue", "operator": "gt", "value": 10_000_000_000},
+            {"field": "debt_to_equity", "operator": "lt", "value": 1},
+        ],
+        "order_by": {"field": "revenue", "direction": "desc"},
+        "limit": 25,
+    },
+).json()
+for company in body["results"]:
+    print(company["ticker"], company["revenue"], company["gross_margin"])
+```

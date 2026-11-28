@@ -1,0 +1,27 @@
+---
+title: "8-K Events"
+sidebarTitle: "Events"
+description: "Every 8-K by the events it reports: executive changes, mergers, bankruptcies, auditor changes and more."
+openapi: "data-api/openapi.yaml GET /filings/events"
+hideApiMarker: true
+---
+
+## Overview
+
+An 8-K reports its events as numbered items: 5.02 for a director or officer who leaves or arrives, 2.01 for an acquisition that closes, 1.03 for a bankruptcy, 4.01 for a change of auditor. SEC lists the item numbers of every 8-K since it began numbering them in August 2004, and this endpoint names each filing's events from them. [8-K Event Types](/data-api/filings/event-types) lists the types with their items.
+
+Without `ticker`, `cik` or a `filing_date` filter, the answer covers the last 30 days of every company, newest first. `type` keeps the filings that report one of the types named. Each row links the filing on sec.gov and the [/filings/items](/data-api/filings/items) request that answers the items' text.
+
+## Example
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+url = "https://darvas.app/api/data/v1/filings/events"
+
+changes = requests.get(url, headers=headers, params={"type": "executive_change,auditor_change", "limit": 50}).json()
+for event in changes["events"]:
+    print(event["filing_date"], event["ticker"], event["events"])
+```

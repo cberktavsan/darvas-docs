@@ -1,0 +1,61 @@
+---
+title: "Quickstart"
+description: "Add a Pine Script indicator to a Darvas chart, save it and change one of its inputs."
+---
+
+In this quickstart you add a moving average crossover indicator to a chart, save it and change one of its inputs.
+
+## 1. Open the indicator editor
+
+- **Desktop:** in `/terminal`, choose **Indicators** in the rail on the right of the chart. If your account has Darvas V3, open the V3 panel and switch it to **Custom indicator**.
+- **Mobile:** open the indicator menu, choose the **Custom** category and tap **New custom indicator**.
+
+The editor opens with two tabs, **Darvas** and **Code**.
+
+## 2. Paste the script
+
+Open the **Code** tab, replace the template with this script, and choose **Add to chart**.
+
+```pine
+//@version=6
+indicator("EMA cross", overlay=true)
+fastLen = input.int(9, "Fast length", minval=1)
+slowLen = input.int(21, "Slow length", minval=1)
+fast = ta.ema(close, fastLen)
+slow = ta.ema(close, slowLen)
+plot(fast, "Fast", color=color.teal)
+plot(slow, "Slow", color=color.orange)
+plotshape(ta.crossover(fast, slow), "Buy", shape.triangleup, location.belowbar, color.green)
+plotshape(ta.crossunder(fast, slow), "Sell", shape.triangledown, location.abovebar, color.red)
+```
+
+The chart shows two moving averages on the price, a green triangle under each bar where the fast one crosses above the slow one, and a red triangle above each bar where it crosses below. The button now reads **Update chart**.
+
+If the script has an error, the editor marks the line and shows the message. Messages from `log.info()` and runner warnings are in **Logs** under the editor.
+
+## 3. Save the indicator
+
+Choose **Save** and give the indicator a name. An indicator you do not save is removed when you close Darvas.
+
+A saved indicator is in the **Custom** category of the indicator menu, and you can add it to any chart and timeframe. Each change to its code is a new version that you can go back to.
+
+## 4. Change an input
+
+Open the menu in the editor header and choose **Inputs**, or use the settings button of the indicator in the chart legend. Set **Fast length** to 5 and save. The fast average and the triangles move.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Write it with Darvas" icon="wand-magic-sparkles" href="/indicators/assistant">
+    Describe the indicator in your own words.
+  </Card>
+  <Card title="Set an alert" icon="bell" href="/indicators/alerts">
+    Get a notification on each new buy or sell triangle.
+  </Card>
+  <Card title="Pine Script support" icon="list-check" href="/pine/support">
+    What Darvas draws and what it does not run.
+  </Card>
+  <Card title="The indicator editor" icon="window" href="/editor-walkthrough">
+    Every part of the editor.
+  </Card>
+</CardGroup>

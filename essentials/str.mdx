@@ -1,0 +1,101 @@
+---
+title: "str.*"
+description: "Darvas JavaScript: the str namespace formats, searches, slices and converts text, mostly to build Label and Box text."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## Overview
+
+The `str` namespace holds string functions. They have no side effects and are available globally as `str.*`. Use them to build text for [Label entities](/entities/label) and Box `text`. Every function converts its first argument with `String()`.
+
+## Function reference
+
+| Function | Returns | Description |
+| --- | --- | --- |
+| `str.format(template, ...args)` | `string` | Fills the numbered placeholders `{0}`, `{1}` with the arguments |
+| `str.tostring(value, format?)` | `string` | Converts a value to text. A format such as `"#.##"` or `"0.00"` sets the number of decimals. `NaN`, `null` and `undefined` give `"NaN"` |
+| `str.tonumber(s)` | `number` | Parses a number. `NaN` when `s` is not a number |
+| `str.length(s)` | `number` | Character count |
+| `str.substring(s, start, end?)` | `string` | Characters from index `start` up to, not including, index `end`. `end` is an index, not a length. Without `end`, the rest of the string |
+| `str.contains(s, needle)` | `boolean` | `true` when `s` contains `needle` |
+| `str.startswith(s, prefix)` | `boolean` | `true` when `s` starts with `prefix` |
+| `str.endswith(s, suffix)` | `boolean` | `true` when `s` ends with `suffix` |
+| `str.indexof(s, needle)` | `number` | Index of the first match, `-1` when there is none |
+| `str.replace(s, find, repl)` | `string` | Replaces the first match only |
+| `str.replace_all(s, find, repl)` | `string` | Replaces every match |
+| `str.split(s, sep)` | `string[]` | Splits into an array |
+| `str.match(s, pattern)` | `string` | The first match of the regular expression `pattern`, or `""` |
+| `str.repeat(s, n)` | `string` | `s` repeated `n` times |
+| `str.upper(s)` | `string` | Upper case |
+| `str.lower(s)` | `string` | Lower case |
+| `str.trim(s)` | `string` | Removes leading and trailing whitespace |
+| `str.format_time(unixSeconds)` | `string` | ISO 8601 time in UTC, for example `"2026-01-01T00:00:00.000Z"` |
+
+## `str.format` placeholder syntax
+
+`str.format` uses numbered placeholders. `{0}` is the first argument after the template, `{1}` the second. A placeholder without a matching argument becomes an empty string. `{}` without a number stays in the text as written.
+
+```js
+const msg = str.format("RSI {0} EMA {1}", 72.4, 42300);
+// "RSI 72.4 EMA 42300"
+
+const priceLabel = str.format("{0} @ {1}", ctx.instId, str.tostring(ctx.close(), "#.##"));
+// "BTC-USDT-SWAP @ 67832.14"
+```
+
+## Practical example
+
+```js
+// overlay = true
+onBar(() => {
+  if (!ctx.isLast()) return;
+
+  const rsi = ta.rsi(ctx.close, 14);
+  if (na(rsi)) return;
+
+  let zone = "Neutral";
+  if (rsi > 70) zone = "OB";
+  if (rsi < 30) zone = "OS";
+
+  Label("rsi-readout", {
+    x: ctx.i(),
+    y: ctx.high(),
+    text: str.format("RSI(14) = {0} | {1}", str.tostring(rsi, "#.#"), zone),
+    color: "#18181bFF",
+  });
+});
+```
+
+## Splitting instrument ids
+
+```js
+// ctx.instId = "BTC-USDT-SWAP"
+const parts = str.split(ctx.instId, "-");
+const base  = parts[0]; // "BTC"
+const quote = parts[1]; // "USDT"
+const kind  = parts[2]; // "SWAP"
+```
+
+## Slicing and case
+
+```js
+str.substring("BTC-USDT", 0, 3); // "BTC", characters 0 to 2
+str.substring("BTC-USDT", 4);    // "USDT"
+str.upper("hello");              // "HELLO"
+str.lower("WORLD");              // "world"
+str.trim("  foo  ");             // "foo"
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="math.*" href="/essentials/math">
+    Numeric functions. Round numbers before you format them.
+  </Card>
+  <Card title="Label entity" href="/entities/label">
+    Display formatted text on the chart.
+  </Card>
+</CardGroup>

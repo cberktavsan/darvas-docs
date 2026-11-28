@@ -1,0 +1,147 @@
+---
+title: "Moving averages"
+description: "Darvas JavaScript: ta.sma, ta.ema, ta.rma, ta.wma, ta.hma, ta.vwma, ta.alma, ta.swma and ta.linreg smooth a source and return the value at the current bar."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## Overview
+
+Every moving average takes a source and returns a number for the current bar. A source is a `ctx.*` accessor, an `input.source()` result, a function called with an offset, `(offset) => number`, or a `Series`.
+
+- A number is not a source. `ta.sma(ctx.close(), 20)` returns `NaN` and logs a warning.
+- A function that ignores its offset, such as `() => x`, returns the same value for every bar of the window, so the average equals `x`. To average a computed value, store it in a `Series` on this bar and pass the Series.
+- `length` must be a whole number from 1 (2 for `ta.hma`) up to the number of bars in the run. A longer length returns `NaN` on every bar. Leaving `length` out throws a `TypeError`.
+
+## Functions
+
+### `ta.sma(source, length)`: simple moving average
+
+The arithmetic mean of the last `length` values. A `NaN` in the window gives `NaN`.
+
+```js
+onBar(() => {
+  plot("SMA20", ta.sma(ctx.close, 20));
+});
+```
+
+### `ta.ema(source, length)`: exponential moving average
+
+Exponentially weighted, with factor `α = 2 / (length + 1)`.
+
+```js
+onBar(() => {
+  plot("EMA9",  ta.ema(ctx.close, 9));
+  plot("EMA21", ta.ema(ctx.close, 21));
+});
+```
+
+### `ta.rma(source, length)`: Wilder smoothing
+
+An EMA with `α = 1 / length`, also known as Wilder's moving average. `ta.rsi` and `ta.atr` use the same smoothing.
+
+```js
+const gainSeries = Series("gain");
+
+onBar(() => {
+  gainSeries.set(math.max(nz(ctx.close() - ctx.close(1)), 0));
+  plot("Smoothed gain", ta.rma(gainSeries, 14));
+});
+```
+
+`ta.ema`, `ta.rma` and `ta.hma` skip `NaN` values in their window. `ta.ema` computes over the newest 3 times `length` bars and `ta.rma` over the newest 4 times `length`, at most 2,000 bars, each seeded with the simple average of its oldest `length` values. Values can differ slightly from an average over the whole history.
+
+### `ta.wma(source, length)`: weighted moving average
+
+Linearly weighted. The current bar has the highest weight.
+
+```js
+onBar(() => {
+  plot("WMA14", ta.wma(ctx.close, 14));
+});
+```
+
+### `ta.hma(source, length)`: Hull moving average
+
+Reduces lag by combining WMAs: `HMA = WMA(2 * WMA(n / 2) - WMA(n), sqrt(n))`. `length` must be at least 2.
+
+```js
+onBar(() => {
+  plot("HMA20", ta.hma(ctx.close, 20));
+});
+```
+
+### `ta.vwma(source, volume, length)`: volume-weighted moving average
+
+Weights each bar by its volume. Pass the volume as a source, usually `ctx.volume`.
+
+```js
+onBar(() => {
+  plot("VWMA20", ta.vwma(ctx.close, ctx.volume, 20));
+});
+```
+
+### `ta.alma(source, length, offset?, sigma?)`: Arnaud Legoux moving average
+
+Gaussian-weighted. `offset` places the peak of the weights inside the window: `0` puts it on the oldest bar and `1` on the current bar. Default `0.85`. `sigma` sets the width of the curve, default `6`. A larger `sigma` gives narrower weights.
+
+```js
+onBar(() => {
+  plot("ALMA", ta.alma(ctx.close, 20, 0.85, 6));
+});
+```
+
+### `ta.swma(source)`: symmetrically weighted moving average
+
+A fixed 4-bar average of the current bar and the 3 bars before it, with weights `1/6, 2/6, 2/6, 1/6`. It takes no length.
+
+```js
+onBar(() => {
+  plot("SWMA", ta.swma(ctx.close));
+});
+```
+
+### `ta.linreg(source, length)`: linear regression value
+
+The value at the current bar of the least-squares line fitted to the last `length` values. It takes no offset argument.
+
+```js
+onBar(() => {
+  plot("LinReg20", ta.linreg(ctx.close, 20));
+});
+```
+
+## Ribbon example
+
+```js
+// overlay = true
+plot("EMA8",  null, { color: "#22c55eFF" });
+plot("EMA13", null, { color: "#84cc16FF" });
+plot("EMA21", null, { color: "#eab308FF" });
+plot("EMA34", null, { color: "#f97316FF" });
+plot("EMA55", null, { color: "#ef4444FF" });
+
+onBar(() => {
+  plot("EMA8",  ta.ema(ctx.close, 8));
+  plot("EMA13", ta.ema(ctx.close, 13));
+  plot("EMA21", ta.ema(ctx.close, 21));
+  plot("EMA34", ta.ema(ctx.close, 34));
+  plot("EMA55", ta.ema(ctx.close, 55));
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Oscillators" href="/ta/oscillators">
+    RSI, MACD, Stochastic and more.
+  </Card>
+  <Card title="Crossovers" href="/ta/crossovers">
+    Detect when two moving averages cross.
+  </Card>
+  <Card title="Series" href="/essentials/series">
+    Store a computed value so ta.* can read it as a source.
+  </Card>
+</CardGroup>

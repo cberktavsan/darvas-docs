@@ -1,0 +1,30 @@
+---
+title: "News"
+sidebarTitle: "News"
+description: "A company's 8-K filings and the press releases of the Federal Reserve, the SEC, the BEA and the BLS, from the sources themselves."
+openapi: "data-api/openapi.yaml GET /news"
+hideApiMarker: true
+---
+
+## Overview
+
+Darvas serves news from its primary sources only, never from news vendors.
+
+- **Company news**, with `ticker` or `cik`: the company's 8-K filings, newest first. Each takes the headline of the press release it furnishes when Darvas has read it, which it does for every new 8-K, and the names of its items otherwise, as `8-K: Results of Operations and Financial Condition`. `url` opens the press release, or the filing.
+- **Market news**, without either: the press releases of the Federal Reserve Board, the SEC and the Bureau of Economic Analysis, and the Bureau of Labor Statistics' releases on employment, prices, job openings and employment costs, read from their feeds every ten minutes. All are US federal agencies, whose releases are public domain.
+
+`limit` is 5 by default and at most 10.
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+url = "https://darvas.app/api/data/v1/news"
+
+for item in requests.get(url, headers=headers, params={"ticker": "AAPL"}).json()["news"]:
+    print(item["date"], item["title"], item["url"])
+
+for item in requests.get(url, headers=headers, params={"limit": 10}).json()["news"]:
+    print(item["published_at"], item["source"], item["title"])
+```

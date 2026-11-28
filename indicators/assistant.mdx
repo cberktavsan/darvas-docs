@@ -1,0 +1,48 @@
+---
+title: "Write indicators with Darvas"
+description: "Describe an indicator to the Darvas assistant, refine it in plain words, or paste a TradingView script for Darvas to run and fix."
+---
+
+The **Darvas** tab of the indicator editor writes Pine Script for you. It runs each answer on your chart, and when the script fails it sends the error back and fixes it.
+
+## Before you start
+
+The assistant works with your own ChatGPT account and uses its quota. Connect the account in the chat panel. If it is not connected, the tab shows **Connect ChatGPT** and sends your request once the account is connected.
+
+The assistant uses the ChatGPT model you picked in the model menu.
+
+## Describe an indicator
+
+1. Open the indicator editor and choose the **Darvas** tab.
+2. Describe what the indicator should draw. For example: "Find RSI 14 divergences. When price makes a lower low while RSI makes a higher low, connect the two lows with a line and put a label under the candle."
+3. Send the request.
+
+The tab shows **Writing the indicator...**, then **Testing it on your chart...**. If the script fails, it shows **Fixing an error (attempt 2 of 3)...** and tries again. The assistant makes three attempts at most. A script that runs is added to the chart as a draft, and the tab lists it as a version.
+
+A new indicator is a Pine v6 `indicator()` script. The assistant does not write strategies, libraries or `import` statements.
+
+## Change an indicator
+
+Write what should change, such as "make the line thicker" or "shade the background when RSI crosses 70". Each change is a new version. The assistant keeps the names of existing input variables, so input values you saved still apply.
+
+To go back, choose **Restore** on an earlier version.
+
+## Paste a TradingView script
+
+Paste the whole script into the request box and send it.
+
+- Darvas first runs the script as pasted. If it runs and draws, Darvas adds it under its own `indicator()` title without asking the model, and the tab says "The script ran as pasted."
+- If it fails, the assistant gets the runner's error and makes the smallest change that makes it run. It keeps the script's `//@version` line, its inputs, plots and drawings, and every line the error does not involve.
+- A script for Pine v1 to v4 runs after an automatic rewrite to v5. See [Pine Script support](/pine/support#versions).
+
+## Keep the result
+
+The assistant's indicator is a draft until you save it. Choose **Save** in the editor header to keep it, use it on other charts, set alerts or share it.
+
+If the request asks for alerts, the assistant also shows an alert card. An alert needs a saved indicator, so the card asks you to save first. See [Alerts on indicator marks](/indicators/alerts).
+
+## Limits
+
+- 60 requests an hour.
+- A request can be up to 100,000 characters, enough for a long pasted script.
+- If the script runner does not answer, the assistant keeps the script untested and says so. Add it to the chart to see whether it runs.

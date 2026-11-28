@@ -1,0 +1,45 @@
+---
+title: "MCP server"
+description: "Every endpoint of the data API as a tool for AI agents, over the Model Context Protocol."
+---
+
+The data API is also an MCP server, so an agent such as Claude Code, Cursor or your own can call it as tools. Each endpoint is one tool, named after its operation in snake case: `list_income_statements`, `get_gpu_prices_snapshot`, `search_documents`. A tool takes the endpoint's query parameters, or its JSON body for `POST` endpoints, and answers what the endpoint answers.
+
+| | |
+| --- | --- |
+| URL | `https://darvas.app/api/data/v1/mcp` |
+| Transport | Streamable HTTP, one JSON answer per request, no sessions |
+| Authentication | Your API key in `X-API-KEY`, or `Authorization: Bearer` |
+| Protocol versions | `2025-11-25`, `2025-06-18`, `2025-03-26` |
+
+A tool call counts as one request against the key's [rate limit](/data-api/authentication), as the same REST request would. A list answer's `next_page_url` carries a cursor: pass it to the same tool as `cursor` for the next page. Sign-in by OAuth is not offered, so clients that cannot send a header, such as some chat apps, cannot connect yet.
+
+## Claude Code
+
+```bash
+claude mcp add --transport http darvas https://darvas.app/api/data/v1/mcp --header "X-API-KEY: $DARVAS_API_KEY"
+```
+
+## Python
+
+```python
+import asyncio
+import os
+
+from mcp import ClientSession
+from mcp.client.streamable_http import streamablehttp_client
+
+
+async def main():
+    headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+    async with streamablehttp_client("https://darvas.app/api/data/v1/mcp", headers=headers) as (read, write, _):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            tools = await session.list_tools()
+            print(len(tools.tools), "tools")
+            answer = await session.call_tool("list_income_statements", {"ticker": "NVDA", "period": "annual", "limit": 2})
+            print(answer.structuredContent["income_statements"][0]["revenue"])
+
+
+asyncio.run(main())
+```

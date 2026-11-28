@@ -1,0 +1,177 @@
+---
+title: "Plot styles"
+description: "Darvas JavaScript: the 12 values of the plot style option, from line and histogram to circles and arrows, and how each draws na bars."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## Setting a style
+
+Pass a `style` string in the options of the top-level declaration:
+
+```js
+plot("Hist", null, { style: "histogram", color: "#a78bfaFF" });
+```
+
+An unknown style draws as `line` and logs the warning `plot(<name>): unknown style "<style>"; falling back to plot.style_line`.
+
+## All 12 styles
+
+### `line` (default)
+
+A continuous line through the value of each bar. The line joins across na bars.
+
+```js
+plot("SMA", null, { style: "line", color: "#22c55eFF", linewidth: 2 });
+```
+
+### `stepline`
+
+A horizontal segment to the next bar, then a vertical jump.
+
+```js
+plot("Step", null, { style: "stepline", color: "#f59e0bFF" });
+```
+
+### `stepline_diamond`
+
+A step line with a diamond mark at each step.
+
+```js
+plot("StepDiamond", null, { style: "stepline_diamond", color: "#a78bfaFF" });
+```
+
+### `histogram`
+
+Vertical bars from `histbase`, `0` by default, to the value. Values above the base grow up, values below it grow down.
+
+```js
+plot("MACD Hist", null, { style: "histogram", color: "#22c55e80" });
+```
+
+### `columns`
+
+Draws the same as `histogram`.
+
+```js
+plot("Strength", null, { style: "columns", color: "#3b82f680" });
+```
+
+### `area`
+
+A line with the region between the value and `histbase` filled in the plot's color. The area joins across na bars.
+
+```js
+plot("Volume area", null, { style: "area", color: "#22c55e40" });
+```
+
+### `areabr`
+
+The same as `area`, broken at na bars.
+
+```js
+plot("ATR band", null, { style: "areabr", color: "#ef444430" });
+```
+
+### `linebr`
+
+A line broken at na bars.
+
+```js
+plot("Linebr", null, { style: "linebr", color: "#6b7280FF" });
+```
+
+### `circles`
+
+A dot at the value of each bar. No connecting line unless `join` is `true`.
+
+```js
+plot("RSI dots", null, { style: "circles", color: "#f59e0bFF" });
+```
+
+### `cross`
+
+A cross mark (`+`) at the value of each bar. No connecting line unless `join` is `true`.
+
+```js
+plot("Pivot", null, { style: "cross", color: "#a78bfaFF" });
+```
+
+### `arrowup`
+
+An up arrow drawn just under the plotted value of each bar. The arrow always points up, whatever the sign of the value.
+
+```js
+plot("Buy sig", null, { style: "arrowup", color: "#22c55eFF" });
+```
+
+### `arrowdown`
+
+A down arrow drawn just over the plotted value of each bar. The arrow always points down.
+
+```js
+plot("Sell sig", null, { style: "arrowdown", color: "#ef4444FF" });
+```
+
+## Marker style options
+
+`circles`, `cross`, `arrowup` and `arrowdown` read these options:
+
+| Option | Type | Description |
+| --- | --- | --- |
+| `color` | `string` | Color of every mark |
+| `linewidth` | `number` | Mark size. A size under 4, the default of 1 included, draws at size 4 |
+| `join` | `boolean` | Also draws a line through the marks |
+
+`colorUp`, `colorDown` and `size` are accepted, but the chart does not read them. Every arrow draws in the plot's `color`.
+
+## Arrow signals
+
+An arrow sits at the price you plot. Plotting `1` for a signal puts the arrow at price 1, far from the candles. Plot a price such as `ctx.low()` for an arrow under the bar, and `NaN` for bars without a signal.
+
+```js
+// overlay = true
+plot("RSI exits overbought", null, { style: "arrowdown", color: "#ef4444FF" });
+
+const rsiSeries = Series("rsi");
+const level = () => 70;
+
+onBar(() => {
+  rsiSeries.set(ta.rsi(ctx.close, 14));
+  const exitsOb = ta.crossunder(rsiSeries, level);
+  plot("RSI exits overbought", exitsOb ? ctx.high() : NaN);
+});
+```
+
+`ta.crossunder` needs two sources. A plain number such as `70` always returns `false`, so the constant level is the function `() => 70`.
+
+## Histogram colors
+
+A histogram draws every bar in the plot's `color`. For different colors above and below zero, write two plots:
+
+```js
+plot("Hist up", null, { style: "histogram", color: "#22c55e80" });
+plot("Hist down", null, { style: "histogram", color: "#ef444480" });
+
+onBar(() => {
+  const { hist } = ta.macd(ctx.close, 12, 26, 9);
+  plot("Hist up", hist >= 0 ? hist : NaN);
+  plot("Hist down", hist < 0 ? hist : NaN);
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Plot basics" href="/plotting/plot-basics">
+    Signature, options, and the registration and emission pattern.
+  </Card>
+  <Card title="MACD histogram example" href="/examples/macd-histogram">
+    Complete MACD with histogram and line plots.
+  </Card>
+  <Card title="color.*" href="/essentials/color">
+    Color format reference.
+  </Card>
+</CardGroup>

@@ -1,0 +1,16 @@
+---
+title: "Index Fund Tickers"
+sidebarTitle: "Tickers"
+description: "Every fund share class ticker with a recent N-PORT report."
+openapi: "data-api/openapi.yaml GET /index-funds/tickers"
+hideApiMarker: true
+---
+
+## Overview
+
+The share class tickers [Index Fund Holdings](/data-api/funds/holdings) answers for, from SEC's list of fund tickers, for funds with an N-PORT report in the last 15 months.
+
+```bash
+curl -H "X-API-KEY: $DARVAS_API_KEY" \
+  "https://darvas.app/api/data/v1/index-funds/tickers"
+```

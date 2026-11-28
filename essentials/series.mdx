@@ -1,0 +1,114 @@
+---
+title: "Series"
+description: "Darvas JavaScript: Series(name) stores one number per bar and reads earlier values by offset, for state that must carry across bars."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## What is a Series?
+
+A `Series` is named storage with one number per bar. You write the value of the current bar with `.set()` and read earlier values with `.get(offset)`. Variables declared inside `onBar` start fresh on each call. A Series keeps its values across bars.
+
+```js
+const prevEma = Series("prev-ema");
+plot("EMA rising", null, { style: "circles", color: "#22c55eFF" });
+
+onBar(() => {
+  const ema = ta.ema(ctx.close, 14);
+  const prev = prevEma.get(1); // EMA of the previous bar
+
+  plot("EMA rising", !na(prev) && ema > prev ? ctx.low() : NaN);
+
+  prevEma.set(ema); // store for the next bar
+});
+```
+
+A Series is also a source, so you can pass it to `ta.*`. Set its value for the current bar before the `ta.*` call.
+
+## API reference
+
+<ParamField path="Series(name)" type="Series object">
+  Returns a handle to the series called `name`. `name` must be a non-empty string. Calling `Series(name)` again with the same name returns another handle to the same storage, so a call inside `onBar` works.
+  ```js
+  const s = Series("my-series");
+  ```
+</ParamField>
+
+<ParamField path="s.set(value)" type="void">
+  Stores `value` for the current bar. `value` must be a number. `undefined`, `null` or a boolean throws a `TypeError`. Pass `NaN` for a missing value.
+  ```js
+  s.set(ctx.close());
+  ```
+</ParamField>
+
+<ParamField path="s.get(offset?)" type="number">
+  Reads the value `offset` bars back. `offset = 0`, the default, is the current bar. Returns `NaN` for a bar that was never set and for an offset past the stored history.
+  ```js
+  const current = s.get();    // current bar, NaN until set() runs in this bar
+  const prev    = s.get(1);   // 1 bar ago
+  const twoBack = s.get(2);   // 2 bars ago
+  ```
+</ParamField>
+
+<ParamField path="s.length" type="number">
+  Number of bars stored since the first `set()` call, up to 5,000.
+</ParamField>
+
+## How storage advances
+
+The storage of a series starts at its first `set()` call. From then on it moves forward one slot on every bar, whether or not you call `set()` on that bar. A bar without a `set()` call holds `NaN`. Bars before the first `set()` call have no values, and `s.get(offset)` returns `NaN` for them.
+
+Each series keeps its newest 5,000 values. A chart run has at most 1,000 bars, so a chart never reaches that limit.
+
+## Budget
+
+- At most **64 series** per script. The count includes the hidden series that `ta.macd`, `ta.cci`, `ta.dmi`, `ta.mfi`, `ta.accdist`, `ta.barssince` and `ta.cum` create.
+- A series counts from its first `set()` call. The `set()` call that would create a 65th series throws a `TypeError` with the message "Series limit exceeded (64)".
+
+## Worked example: crossover detection
+
+```js
+// Detect when the fast EMA crosses above the slow EMA
+const fastSeries = Series("fast-ema");
+const slowSeries = Series("slow-ema");
+
+plot("Fast EMA", null, { color: "#22c55eFF" });
+plot("Slow EMA", null, { color: "#f59e0bFF" });
+plot("Cross", null, { style: "arrowup", color: "#22c55eFF" });
+
+onBar(() => {
+  const fast = ta.ema(ctx.close, 9);
+  const slow = ta.ema(ctx.close, 21);
+
+  const prevFast = fastSeries.get(1);
+  const prevSlow = slowSeries.get(1);
+
+  fastSeries.set(fast);
+  slowSeries.set(slow);
+
+  plot("Fast EMA", fast);
+  plot("Slow EMA", slow);
+
+  // Crossover: fast was below slow, now above
+  const crossover = !na(prevFast) && !na(prevSlow) && prevFast < prevSlow && fast > slow;
+  plot("Cross", crossover ? ctx.low() * 0.999 : NaN);
+});
+```
+
+`ta.crossover(fastSeries, slowSeries)` gives the same result once both series hold the current values.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="NaN handling" href="/essentials/nan-handling">
+    Series.get() returns NaN for bars that hold no value.
+  </Card>
+  <Card title="Aggregators" href="/ta/aggregators">
+    ta.barssince and ta.cum keep their state in a hidden series under a key.
+  </Card>
+  <Card title="API limits" href="/reference/api-limits">
+    The 64-series budget, shared with hidden ta.* state.
+  </Card>
+</CardGroup>

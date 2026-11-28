@@ -1,0 +1,180 @@
+---
+title: "Gotchas"
+description: "Darvas JavaScript: common traps, such as stale entity handles, NaN coordinates that throw, numbers passed as sources, hidden ta.* state, bgcolor(null) and plot order."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## Same-key recreate makes old handles stale
+
+If you call `Line("my-line", opts)` twice, a handle from the first call is stale. Its `.set()` does nothing and logs a console warning, and its `.delete()` does nothing and returns `false`.
+
+```js
+// Wrong: the handle is stale after the second call
+const line = Line("sr", { x1: 0, y1: 100, x2: 10, y2: 100, color: "#22c55eFF" });
+Line("sr", { x1: 0, y1: 95, x2: 10, y2: 95, color: "#ef4444FF" });
+line.set({ color: "#a78bfaFF" }); // does nothing
+
+// Correct: always keep the new handle
+let line2 = Line("sr", { x1: 0, y1: 100, x2: 10, y2: 100, color: "#22c55eFF" });
+line2 = Line("sr", { x1: 0, y1: 95, x2: 10, y2: 95, color: "#ef4444FF" });
+line2.set({ color: "#a78bfaFF" }); // works
+```
+
+## LineFill set() changes only the color
+
+`handle.set()` on a `LineFill` accepts only `color`. To fill between two other lines, delete the fill and create a new one.
+
+```js
+// Wrong: has no effect
+fill.lineA = newLine;
+
+// Correct: delete and create again
+fill.delete();
+const fill2 = LineFill("my-fill", newLineA, newLineB, { color: "#22c55e30" });
+```
+
+## NaN coordinates throw
+
+A `NaN`, `Infinity`, `null` or `undefined` coordinate does not make an entity invisible. On create, the call throws a `TypeError` and stops the script.
+
+```js
+// If pivotHigh is NaN, this call throws
+Line("ph", { x1: pivotBar, y1: pivotHigh, x2: ctx.i(), y2: pivotHigh, color: "#ef4444FF" });
+
+// Guard first:
+if (!na(pivotHigh)) {
+  Line("ph", { x1: pivotBar, y1: pivotHigh, x2: ctx.i(), y2: pivotHigh, color: "#ef4444FF" });
+}
+```
+
+In `handle.set()`, a `NaN` coordinate keeps the old value.
+
+## Unknown option names throw
+
+Entity options are checked by name. A Pine-style or misspelled name, such as `textColor` on a Label or `extend` on a Line, throws a `TypeError` that names the field.
+
+## Marker x is a time, not a bar index
+
+`Line`, `Box` and `Label` take a bar index for `x`. `Marker` takes a bar open time in unix seconds. Pass `ctx.time()`, not `ctx.i()`.
+
+## Persistent Marker vs per-bar plot circles
+
+These look alike but behave differently:
+
+| | `Marker` entity | `plot(..., { style: "circles" })` |
+| --- | --- | --- |
+| Type | Persistent, keyed | Per-bar plot |
+| Creation | Explicit factory call | A value written in every `onBar` |
+| Position | `x` as a bar time, `y` as a price | One dot per bar with a value |
+| Use case | An annotation on a specific bar | A computed signal on many bars |
+
+## A number is not a source
+
+`ta.*` functions read history through their source. A number has no history:
+
+- `ta.rsi(ctx.close(), 14)` returns `NaN` and logs a warning. Pass `ctx.close`.
+- `ta.crossover(a, 70)`, `ta.crossunder(a, 70)` and `ta.cross(a, 70)` always return `false`. Write the level as `() => 70`.
+- `ta.sma(() => obv, 20)` returns `obv`, and `ta.crossover(() => rsi, level)` never fires. A function that ignores its offset returns the same value for every bar. Store the value in a `Series` and pass the Series.
+
+## Check the ta.* signatures
+
+Several functions differ from Pine or from older docs:
+
+- `ta.bb` and `ta.keltner` return `{ basis, upper, lower }`. There is no `middle`.
+- `ta.cci(source, high, low, close, length)` needs all five arguments. `ta.cci(ctx.hlc3, 20)` returns `NaN`.
+- `ta.dmi(high, low, close, diLength, adxLength)` needs both lengths and returns `{ plusDI, minusDI, adx }`.
+- `ta.accdist(high, low, close, volume)` takes high first.
+
+## Hidden ta.* state is keyed by length
+
+`ta.macd`, `ta.cci`, `ta.dmi` and `ta.mfi` key their hidden state by their lengths, and `ta.accdist` has one state. Two calls with the same lengths on different sources share the state and both go wrong. Call each one once per bar, on every bar, and reuse the result.
+
+## NaN arithmetic propagation
+
+Any math on `NaN` returns `NaN`:
+
+```js
+NaN + 1     // NaN
+NaN * 0     // NaN
+NaN > 50    // false: every comparison with NaN is false
+NaN === NaN // false
+```
+
+Use `na(x)` or `nz(x, fallback)` to break the chain:
+
+```js
+const rsi = ta.rsi(ctx.close, 14);
+const safe = nz(rsi, 50); // 50 during warmup, the real value after
+```
+
+`na()` with no argument returns `NaN`. It does not test anything, so `if (na())` is never true.
+
+## bgcolor and barcolor need a string
+
+`bgcolor(null)` and `barcolor(null)` throw a `TypeError` and stop the script. Skip the call for a bar without a color:
+
+```js
+if (rsi > 70) bgcolor("#ef444420");
+```
+
+## Rounding and formatting
+
+- `math.round(x, 2)` ignores the `2`. Use `math.round(x * 100) / 100`, or `str.tostring(x, "#.##")` for text.
+- `str.format` uses numbered placeholders: `str.format("{0} / {1}", a, b)`. `{}` stays in the text as written.
+- `str.substring(s, start, end)` takes an end index, not a length.
+- The `color.*` constants are Pine's palette: `color.red` is `#FF0000FF`, not a soft red. `color.cyan`, `color.pink` and other names outside Pine's 24 are `undefined`.
+
+## Register plots at the top level
+
+`plot(name, null, opts)` at the top level sets the options of a plot. A plot that you only write inside `onBar` gets the default color `#22c55e` and the default width. Options passed inside `onBar` are ignored.
+
+```js
+// Top level: register with options
+plot("RSI", null, { color: "#a78bfaFF", linewidth: 2 });
+
+// onBar: write the value
+onBar(() => {
+  plot("RSI", ta.rsi(ctx.close, 14));
+});
+```
+
+Plots come out sorted by name, not in the order you declare them. The chart adds them in that order, so a plot whose name sorts later draws on top.
+
+## Top-level ctx reads the newest bar
+
+At the top level, `ctx.close()` and the other accessors read the newest bar of the run, and `ctx.i()` is `ctx.length - 1`. Per-bar logic belongs inside `onBar`.
+
+## Entity limits throw
+
+Creating a 501st Line, Box, Label, Marker or LineFill throws a `TypeError` and stops the script. The oldest entities are not dropped to make room. Delete entities you no longer need, which frees their slots. Past 1,500 drawings in total, the extras are dropped at the end of the run without a message.
+
+## Accepted options the chart does not draw
+
+These options pass the check but change nothing on the chart: Line `label` and `zIndex`, Box `rounding`, `zIndex` and `extend` values `"up"`, `"down"` and `"both_y"`, Label and Marker `zIndex`, Marker `size`, and the plot options `colorUp`, `colorDown` and `size`.
+
+## Handles are shallow
+
+A handle does not hold the entity's state. It names a slot. Two variables that hold the same handle change the same entity:
+
+```js
+const h1 = Line("x", { x1: 0, y1: 0, x2: 1, y2: 1, color: "#22c55eFF" });
+const h2 = h1; // the same handle object
+h2.set({ color: "#ef4444FF" }); // changes the one entity
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Troubleshooting" href="/reference/troubleshooting">
+    Error messages and fixes.
+  </Card>
+  <Card title="Entities overview" href="/entities/overview">
+    Slot model and handle API in depth.
+  </Card>
+  <Card title="NaN handling" href="/essentials/nan-handling">
+    na() and nz() reference.
+  </Card>
+</CardGroup>

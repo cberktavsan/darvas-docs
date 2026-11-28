@@ -1,0 +1,36 @@
+---
+title: "Company Facts"
+sidebarTitle: "Company Facts"
+description: "A company's SEC profile by ticker or CIK: name, industry, exchange, location and every ticker it has traded under."
+openapi: "data-api/openapi.yaml GET /company/facts"
+hideApiMarker: true
+---
+
+## Overview
+
+The profile SEC holds for a company, from its submissions record. Look it up by `ticker` or by `cik`; with both, `cik` wins.
+
+| Coverage | Details |
+| --- | --- |
+| Companies | Every SEC filer, about 994,000, delisted ones included |
+| Tickers | The current SEC list, plus tickers seen on Forms 3, 4 and 5 since 2006 |
+| Updated | Within about a minute of the company's next filing |
+
+`industry` and `sic_industry` describe the SIC code; `sic_sector` is its SIC division. `sector` is the SEC office that reviews the company's filings. `is_active` is true when SEC listed one of the company's tickers in the last seven days. `tickers` lists every ticker with the first and last day a source listed it.
+
+## Examples
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+url = "https://darvas.app/api/data/v1/company/facts"
+
+apple = requests.get(url, headers=headers, params={"ticker": "AAPL"}).json()["company_facts"]
+print(apple["name"], apple["sic_industry"], apple["fiscal_year_end"])
+
+# A CIK finds companies that no longer trade.
+lehman = requests.get(url, headers=headers, params={"cik": "806085"}).json()["company_facts"]
+print(lehman["name"], lehman["is_active"], [t["ticker"] for t in lehman["tickers"]])
+```

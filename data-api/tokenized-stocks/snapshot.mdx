@@ -1,0 +1,33 @@
+---
+title: "Tokenized Stock Price"
+sidebarTitle: "Price Snapshot"
+description: "The latest price of an instrument that tracks a US stock, against the stock's own price."
+openapi: "data-api/openapi.yaml GET /tokenized-stocks/prices/snapshot"
+hideApiMarker: true
+---
+
+## Overview
+
+Three kinds of instrument track a US stock and trade at any hour. Name one by its ticker as [`/tokenized-stocks`](/data-api/tokenized-stocks/list) lists it.
+
+| Venue | Ticker | `price` | `stock` |
+| --- | --- | --- | --- |
+| OKX stock perpetual swaps | `NVDA-USDT-SWAP` | The last one-minute close | The stock's price from [`/prices/snapshot`](/data-api/prices/snapshot) |
+| Bybit xStocks tokens | `NVDAX` | The last trade | The same |
+| Coinbase stock tokens on Base | `NVDAc` | The price of the token's deepest USDC pool, with its last swap in `last_trade` | The token's published net asset value per share, which pauses outside market hours |
+
+A token stands for `shares_per_token` shares, so `price_per_share` is `price` over it, and `gap_percent` compares that with the stock's price. A stock ticker such as `NVDA` answers `400`; Base fields such as `pool` are `null` on an exchange.
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+for ticker in ["NVDA-USDT-SWAP", "NVDAX"]:
+    body = requests.get(
+        "https://darvas.app/api/data/v1/tokenized-stocks/prices/snapshot",
+        headers=headers,
+        params={"ticker": ticker},
+    ).json()["snapshot"]
+    print(ticker, body["price_per_share"], body["stock"]["price"], body["gap_percent"])
+```

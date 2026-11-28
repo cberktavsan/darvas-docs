@@ -1,0 +1,91 @@
+---
+title: "RSI divergence"
+description: "Darvas JavaScript: an RSI indicator that marks bearish divergence, where price makes a higher pivot high and RSI makes a lower one."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## What this builds
+
+- A standard RSI plot with overbought and oversold levels
+- Bearish divergence detection: price makes a higher pivot high, but RSI makes a lower pivot high
+- An arrow above the RSI on each pivot that shows divergence
+
+## Full script
+
+```js
+const rsiLen   = input.int("RSI Length", 14);
+const pivotLen = input.int("Pivot lookback", 5);
+
+hline(70, { color: "#ef4444FF" });
+hline(50, { color: "#6b728050" });
+hline(30, { color: "#22c55eFF" });
+
+plot("RSI", null, { color: "#a78bfaFF" });
+// offset moves each arrow back to its pivot bar
+plot("Div", null, { style: "arrowdown", color: "#ef4444FF", offset: -pivotLen });
+
+const rsiSeries      = Series("rsi");
+const lastPivotRsi   = Series("last-pivot-rsi");
+const lastPivotPrice = Series("last-pivot-price");
+
+onBar(() => {
+  const rsi = ta.rsi(ctx.close, rsiLen);
+  rsiSeries.set(rsi);
+  plot("RSI", rsi);
+
+  // A pivot high in price, pivotLen bars back
+  const priceHigh  = ta.pivothigh(ctx.high, pivotLen, pivotLen);
+  const rsiAtPivot = rsiSeries.get(pivotLen); // RSI on the pivot bar
+
+  const prevPrice = lastPivotPrice.get(1);
+  const prevRsi   = lastPivotRsi.get(1);
+
+  let div = NaN;
+  if (!na(priceHigh) && !na(rsiAtPivot)) {
+    // Bearish divergence: price higher high, RSI lower high
+    if (priceHigh > prevPrice && rsiAtPivot < prevRsi) {
+      div = rsiAtPivot + 5; // arrow above the RSI at the pivot
+    }
+    lastPivotPrice.set(priceHigh);
+    lastPivotRsi.set(rsiAtPivot);
+  } else {
+    // Carry the last pivot forward
+    lastPivotPrice.set(prevPrice);
+    lastPivotRsi.set(prevRsi);
+  }
+
+  plot("Div", div);
+});
+```
+
+## How divergence detection works
+
+1. `ta.pivothigh` finds swing highs in price, `pivotLen` bars after they form.
+2. `rsiSeries.get(pivotLen)` reads the RSI of the pivot bar, not of the current bar.
+3. Two Series keep the price and RSI of the last confirmed pivot.
+4. On the next pivot, the script compares the two. A higher price with a lower RSI is bearish divergence.
+
+## Notes
+
+- `ta.pivothigh` confirms a pivot `pivotLen` bars after it forms. See [Pivots](/ta/pivots).
+- The plot option `offset: -pivotLen` draws each arrow on the pivot bar instead of the bar that confirmed it. Plot options are set at the top level, where `pivotLen` is known.
+- The carry-forward lines `lastPivotPrice.set(prevPrice)` copy the last pivot onto every bar without one, so `.get(1)` always holds the last pivot.
+- A comparison with `NaN` is `false`, so the first pivot never marks a divergence.
+- A smaller `pivotLen` gives more signals. A larger one keeps only major swings. Inputs return their defaults, so change the default in the script.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Oscillators" href="/ta/oscillators">
+    ta.rsi reference.
+  </Card>
+  <Card title="Pivots" href="/ta/pivots">
+    Why ta.pivothigh lags.
+  </Card>
+  <Card title="Series" href="/essentials/series">
+    Persistent storage used to remember earlier pivot values.
+  </Card>
+</CardGroup>

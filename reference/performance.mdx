@@ -1,0 +1,133 @@
+---
+title: "Performance tips"
+description: "Darvas JavaScript: how to keep an indicator inside the 50 ms per-bar and 10 s total budgets on a run of up to 1,000 bars."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## Why performance matters
+
+A run calls `onBar` once for every bar, and a chart run has at most 1,000 bars. Each `onBar` call has 50 ms, and the whole run has 10 s. At 1,000 bars, the total budget allows about 10 ms per bar on average. A run that passes either budget stops with `TIMEOUT` and draws nothing.
+
+## Tip 1: Prefer `ta.*` over manual loops
+
+The basic `ta.*` functions, such as `ta.sma`, `ta.ema`, `ta.rsi`, `ta.atr`, `ta.stdev`, `ta.highest` and `ta.lowest`, run in Rust outside the script. The composites, such as `ta.macd`, `ta.bb`, `ta.stoch` and `ta.pivothigh`, are JavaScript built on them.
+
+```js
+// Slow: manual sum in JavaScript
+onBar(() => {
+  let sum = 0;
+  for (let i = 0; i < 20; i++) {
+    sum += nz(ctx.close(i), 0);
+  }
+  plot("Manual SMA", sum / 20);
+});
+
+// Fast: native
+onBar(() => {
+  plot("SMA", ta.sma(ctx.close, 20));
+});
+```
+
+## Tip 2: Pass the same source object
+
+Within one `onBar` call, the runtime caches each `ta.*` window by source object and length. `ta.sma(ctx.close, 20)` and `ta.stdev(ctx.close, 20)` in the same bar read the window once. The cache does not carry results to the next bar.
+
+A new arrow function on every call is a new source object, so it cannot share the cached window:
+
+```js
+const src = input.source("Source", "close");
+
+// Good: the same source object for both calls
+onBar(() => {
+  const basis = ta.sma(src, 20);
+  const dev   = ta.stdev(src, 20); // reuses the window that ta.sma read
+});
+
+// Slower: a new wrapper on each call
+onBar(() => {
+  const basis = ta.sma((o) => src(o), 20);
+  const dev   = ta.stdev((o) => src(o), 20); // reads the window again
+});
+```
+
+Pass `ctx.close`, `ctx.high` and the other accessors directly, not wrapped in arrow functions.
+
+## Tip 3: Use a Series only for computed values
+
+`ctx.close` is already a source. A Series is for a value that you compute, such as an RSI that you want to cross or average.
+
+```js
+// Unnecessary: a Series that copies ctx.close
+const closeSeries = Series("close");
+onBar(() => {
+  closeSeries.set(ctx.close());
+  const sma = ta.sma(closeSeries, 20);
+});
+
+// Direct: ctx.close is a source
+onBar(() => {
+  const sma = ta.sma(ctx.close, 20);
+});
+```
+
+## Tip 4: Do one-off work on the last bar
+
+Work that only matters for the newest bar, such as a readout label, can wait for `ctx.isLast()`:
+
+```js
+// overlay = true
+onBar(() => {
+  const fast = ta.ema(ctx.close, 9);
+  const slow = ta.ema(ctx.close, 21);
+  plot("Fast", fast);
+  plot("Slow", slow);
+
+  // Build the label only on the newest bar
+  if (ctx.isLast()) {
+    Label("spread", {
+      x: ctx.i(), y: ctx.high(),
+      text: str.format("Spread {0}", str.tostring(fast - slow, "#.##")),
+    });
+  }
+});
+```
+
+Avoid nested loops over history. A loop of 1,000 steps inside `onBar` runs 1,000,000 steps over a full run.
+
+## Tip 5: Create entities only on events
+
+A new key on every bar, such as `` Line(`key_${ctx.i()}`, ...) ``, creates 1,000 lines on a full run. The 501st line throws a `TypeError` and stops the script. Create entities on events such as confirmed pivots, reuse a fixed set of keys, or delete old entities to free their slots.
+
+## Tip 6: Return early, after stateful calls
+
+Returning early from `onBar` while an indicator is warming up skips the work below it:
+
+```js
+onBar(() => {
+  const m = ta.macd(ctx.close);       // stateful: call it before any return
+  const rsi = ta.rsi(ctx.close, 14);
+  if (na(rsi)) return;                 // skip the rest during warmup
+
+  const bb = ta.bb(ctx.close, 20, 2);
+  // ... rest of logic
+});
+```
+
+Call `ta.macd`, `ta.cci`, `ta.dmi`, `ta.mfi`, `ta.accdist` and `ta.barssince` before the return. They need a call on every bar.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="API limits" href="/reference/api-limits">
+    All runtime budgets in one place.
+  </Card>
+  <Card title="Gotchas" href="/reference/gotchas">
+    Common mistakes that waste computation.
+  </Card>
+  <Card title="Troubleshooting" href="/reference/troubleshooting">
+    TIMEOUT errors and how to fix them.
+  </Card>
+</CardGroup>

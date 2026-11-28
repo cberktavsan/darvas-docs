@@ -1,0 +1,13 @@
+---
+title: "Latest Yield Curve"
+sidebarTitle: "Snapshot"
+description: "The most recent business day's Treasury par yield curve."
+openapi: "data-api/openapi.yaml GET /macro/yield-curve/snapshot"
+hideApiMarker: true
+---
+
+The newest curve as one object with a field per tenor.
+
+```bash
+curl "https://darvas.app/api/data/v1/macro/yield-curve/snapshot" -H "X-API-KEY: $DARVAS_API_KEY"
+```

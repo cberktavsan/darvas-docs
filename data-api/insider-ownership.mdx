@@ -1,0 +1,36 @@
+---
+title: "Insider Ownership"
+sidebarTitle: "Insider Ownership"
+description: "What officers, directors and 10% owners hold, from SEC Forms 3 and 5 since 2006."
+openapi: "data-api/openapi.yaml GET /insider-ownership"
+hideApiMarker: true
+---
+
+## Overview
+
+One row per holding reported on Form 3, the statement an insider files on taking the role, or Form 5, the annual statement. Holdings are point-in-time statements, newest filing first.
+
+| Coverage | Details |
+| --- | --- |
+| History | Since January 2006 |
+| Updated | Within about a minute of acceptance |
+| Forms | 3, 3/A, 5, 5/A |
+
+`holding_type` is `common` for shares and `derivative` for options, units and warrants; derivative rows carry the exercise price, dates and underlying security. For trades rather than holdings, use [Insider Trades](/data-api/insider-trades).
+
+## Examples
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+holdings = requests.get(
+    "https://darvas.app/api/data/v1/insider-ownership",
+    headers=headers,
+    params={"ticker": "TSLA", "form_type": "3", "limit": 20},
+).json()["insider_ownership"]
+
+for holding in holdings:
+    print(holding["filing_date"], holding["name"], holding["holding_type"], holding["shares_owned"])
+```

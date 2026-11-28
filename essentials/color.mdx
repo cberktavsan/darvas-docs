@@ -1,0 +1,122 @@
+---
+title: "color.*"
+description: "Darvas JavaScript: the color namespace holds 24 Pine palette constants and the functions color.new, color.rgb, color.from_gradient, color.r, color.g, color.b and color.t."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## Overview
+
+Colors are hex strings, `"#RRGGBB"` or `"#RRGGBBAA"`. In the 8-character form the last two characters are the alpha channel. `FF` is fully opaque and `00` is fully transparent. The `color` functions return the 8-character form.
+
+## Constructing colors
+
+<ParamField path="color.new(hex, transp?)" type="string">
+  Returns `hex` with the transparency `transp`, from `0` (opaque) to `100` (invisible). `transp` is `0` when you leave it out. Any alpha already in `hex` is replaced.
+  ```js
+  color.new("#FF0000", 0)   // opaque red: "#FF0000FF"
+  color.new("#FF0000", 50)  // half transparent red: "#FF000080"
+  color.new("#FF0000", 100) // invisible: "#FF000000"
+  ```
+</ParamField>
+
+<ParamField path="color.rgb(r, g, b, transp?)" type="string">
+  Builds a color from red, green and blue values from `0` to `255`, and a transparency from `0` to `100`. `transp` is `0` when you leave it out.
+  ```js
+  color.rgb(255, 128, 0)      // "#FF8000FF"
+  color.rgb(255, 128, 0, 80)  // "#FF800033"
+  ```
+</ParamField>
+
+<ParamField path="color.from_gradient(value, low, high, lowColor, highColor)" type="string">
+  Mixes `lowColor` and `highColor` by where `value` sits between `low` and `high`. Values outside the range use the nearer end. The result is opaque. When `value`, `low` or `high` is na, or `low` equals `high`, it returns `lowColor`.
+  ```js
+  color.from_gradient(50, 0, 100, "#000000", "#FFFFFF") // "#808080FF"
+  ```
+</ParamField>
+
+<ParamField path="color.r(c), color.g(c), color.b(c)" type="number">
+  The red, green and blue components of `c`, from `0` to `255`.
+</ParamField>
+
+<ParamField path="color.t(c)" type="number">
+  The transparency of `c`, from `0` to `100`. A 6-character color has transparency `0`.
+</ParamField>
+
+## Named color constants
+
+The runtime has the 24 colors of Pine's palette:
+
+| Constant | Hex | Constant | Hex |
+| --- | --- | --- | --- |
+| `color.black` | `#000000FF` | `color.olive` | `#808000FF` |
+| `color.silver` | `#C0C0C0FF` | `color.yellow` | `#FFFF00FF` |
+| `color.gray` | `#808080FF` | `color.navy` | `#000080FF` |
+| `color.white` | `#FFFFFFFF` | `color.blue` | `#0000FFFF` |
+| `color.maroon` | `#800000FF` | `color.teal` | `#008080FF` |
+| `color.red` | `#FF0000FF` | `color.aqua` | `#00FFFFFF` |
+| `color.purple` | `#800080FF` | `color.orange` | `#FFA500FF` |
+| `color.fuchsia` | `#FF00FFFF` | `color.lightgray` | `#D3D3D3FF` |
+| `color.green` | `#008000FF` | `color.lightred` | `#FF7F7FFF` |
+| `color.lime` | `#00FF00FF` | `color.lightgreen` | `#90EE90FF` |
+| `color.lightblue` | `#ADD8E6FF` | `color.lightyellow` | `#FFFFE0FF` |
+| `color.lightpurple` | `#D8BFD8FF` | `color.lightorange` | `#FFD580FF` |
+
+Any other name, such as `color.cyan`, `color.pink` or `color.slate`, is `undefined`.
+
+## Dynamic coloring example
+
+```js
+// overlay = true
+const bullColor = input.color("Bull", "#22c55eFF");
+const bearColor = input.color("Bear", "#ef4444FF");
+
+onBar(() => {
+  const isBull = ctx.close() >= ctx.open();
+  barcolor(isBull ? bullColor : bearColor);
+});
+```
+
+## Transparency and gradients
+
+`bgcolor` needs a string. To leave a bar uncolored, skip the call.
+
+```js
+// RSI overbought zone shading
+const obColor = color.new("#ef4444", 80); // faint red
+
+plot("RSI", null, { color: "#a78bfaFF" });
+
+onBar(() => {
+  const rsi = ta.rsi(ctx.close, 14);
+  plot("RSI", rsi);
+  if (rsi > 70) bgcolor(obColor);
+});
+```
+
+`color.from_gradient` returns an opaque color, so wrap it in `color.new` for a background:
+
+```js
+onBar(() => {
+  const rsi = ta.rsi(ctx.close, 14);
+  if (na(rsi)) return;
+  const shade = color.from_gradient(rsi, 30, 70, "#22c55e", "#ef4444");
+  bgcolor(color.new(shade, 85));
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Plot basics" href="/plotting/plot-basics">
+    The color option for plots.
+  </Card>
+  <Card title="hline, fill, bgcolor" href="/plotting/hline-fill-bgcolor">
+    bgcolor and barcolor use the same color format.
+  </Card>
+  <Card title="Line entity" href="/entities/line">
+    Entity colors use the same format.
+  </Card>
+</CardGroup>

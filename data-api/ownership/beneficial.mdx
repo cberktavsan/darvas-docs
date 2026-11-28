@@ -1,0 +1,41 @@
+---
+title: "Beneficial Ownership"
+sidebarTitle: "5% Owners"
+description: "Owners of more than 5% of a company's shares, from SEC Schedules 13D and 13G, one row per reporting person."
+openapi: "data-api/openapi.yaml GET /beneficial-ownership"
+hideApiMarker: true
+---
+
+## Overview
+
+Anyone who comes to own more than 5% of a class of a company's shares files a Schedule 13D, or a shorter Schedule 13G when the stake is passive. Each row is one reporting person of one filing: joint filings, such as a fund and its manager, list several.
+
+| Coverage | Details |
+| --- | --- |
+| History | Every schedule filed as XML, which SEC has required since December 2024 |
+| Updated | Within about a minute of acceptance |
+| Forms | SCHEDULE 13D, 13D/A, 13G, 13G/A |
+| Page size | 100; `limit` counts across pages, up to 10,000 |
+
+A stake is one filer's holding in one company, as a 13D or as a 13G. By default each stake's newest filing comes; `history=true` returns every filing of the chain with `is_latest` on the newest. `type` is `activist` for a 13D and `passive` for a 13G. A 13D states its purpose in `purpose_of_transaction`; a 13G names the rule it is filed under.
+
+## Filtering
+
+- `ticker` or `cik` for who owns a company, or `filer_cik` for what a filer owns; send one.
+- `type`: `activist` or `passive`.
+- `history`: `true` for every filing.
+- `filing_date`, `filing_date_gte`, `filing_date_lte`, `filing_date_gt`, `filing_date_lt`: ISO dates.
+
+## Examples
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+url = "https://darvas.app/api/data/v1/beneficial-ownership"
+
+owners = requests.get(url, headers=headers, params={"ticker": "AAPL", "limit": 50}).json()
+for row in owners["beneficial_owners"]:
+    print(row["reporting_person_name"], row["type"], row["percent_of_class"])
+```

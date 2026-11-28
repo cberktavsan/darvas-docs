@@ -1,0 +1,149 @@
+---
+title: "Line"
+description: "Darvas JavaScript: Line(key, opts) draws a persistent line segment between two points given as bar index and price."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## Signature
+
+```ts
+Line(key, opts) -> handle
+```
+
+`key` is a non-empty string that names this line's slot. Calling `Line` with the same key replaces the earlier line. See [entities overview](/entities/overview) for the slot model.
+
+## Quick example
+
+```js
+// overlay = true
+const support = Line("support", {
+  x1: 0,  y1: 42000,
+  x2: 50, y2: 42000,
+  color: "#22c55eFF",
+  width: 2,
+  style: "solid",
+});
+
+onBar(() => {
+  // Extend the line to the current bar
+  support.set({ x2: ctx.i() });
+});
+```
+
+## Options
+
+<ParamField path="x1" type="number" required>
+  Start x coordinate as a bar index.
+</ParamField>
+
+<ParamField path="y1" type="number" required>
+  Start y coordinate as a price.
+</ParamField>
+
+<ParamField path="x2" type="number" required>
+  End x coordinate as a bar index.
+</ParamField>
+
+<ParamField path="y2" type="number" required>
+  End y coordinate as a price.
+</ParamField>
+
+<ParamField path="color" type="string">
+  Line color as a hex string. Default: `"#FFFFFFFF"`, opaque white.
+</ParamField>
+
+<ParamField path="width" type="number">
+  Line width in pixels, a whole number. Default: `1`.
+</ParamField>
+
+<ParamField path="style" type="string">
+  Line style. One of `"solid"`, `"dotted"`, `"dashed"`, `"arrow.right"`, `"arrow.left"` or `"arrow.both"`. Default: `"solid"`.
+</ParamField>
+
+<ParamField path="label" type="string">
+  Accepted, but the chart does not draw it.
+</ParamField>
+
+<ParamField path="zIndex" type="number">
+  Accepted, but the chart does not use it.
+</ParamField>
+
+<ParamField path="forceOverlay" type="boolean">
+  When `true`, a pane indicator draws the line on the price chart. Default: `false`.
+</ParamField>
+
+The four coordinates must be finite numbers when you create the line. A `NaN` coordinate throws a `TypeError`. Any other option name throws a `TypeError` too.
+
+## Style values
+
+| Value | Description |
+| --- | --- |
+| `"solid"` | Continuous line |
+| `"dotted"` | Dotted line |
+| `"dashed"` | Dashed line |
+| `"arrow.right"` | Arrowhead at the end, (x2, y2) |
+| `"arrow.left"` | Arrowhead at the start, (x1, y1) |
+| `"arrow.both"` | Arrowheads at both ends |
+
+You can also use the `linestyle.*` constants. The arrow styles are nested:
+
+```js
+Line("trend", { x1: 0, y1: 100, x2: 10, y2: 110, style: linestyle.dashed });
+Line("move",  { x1: 0, y1: 100, x2: 10, y2: 120, style: linestyle.arrow.right });
+```
+
+## Handle methods
+
+```js
+const line = Line("sr", { x1: 0, y1: 42000, x2: 10, y2: 42000, color: "#22c55eFF" });
+
+// Change in place
+line.set({ color: "#ef4444FF", y1: 41800, y2: 41800 });
+
+// Clone to a new key
+const copy = line.clone("sr-copy");
+
+// Delete
+line.delete();
+```
+
+## Dynamic S/R line example
+
+```js
+// overlay = true
+// Draw an arrow.right line from each new pivot high
+onBar(() => {
+  const ph = ta.pivothigh(ctx.high, 5, 5);
+  if (na(ph)) return;
+
+  const pivotBar = ctx.i() - 5; // the pivot high is 5 bars back
+  Line(`ph_${pivotBar}`, {
+    x1: pivotBar, y1: ph,
+    x2: ctx.i(),  y2: ph,
+    color: "#ef4444FF",
+    style: linestyle.arrow.right,
+  });
+});
+```
+
+Each pivot gets its own key, so the script keeps every line up to the limit of 500. To label a level, add a [Label](/entities/label) at the same point.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="LineFill" href="/entities/linefill">
+    Shade the area between two Line entities.
+  </Card>
+  <Card title="Box" href="/entities/box">
+    Rectangular zone, for an area with width and height.
+  </Card>
+  <Card title="Constants" href="/entities/constants">
+    linestyle.* values.
+  </Card>
+  <Card title="Support/resistance example" href="/examples/support-resistance">
+    Full working example using Line entities.
+  </Card>
+</CardGroup>

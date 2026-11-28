@@ -1,0 +1,25 @@
+---
+title: "Balance Sheets"
+sidebarTitle: "Balance Sheets"
+description: "Assets, liabilities, debt and equity of a company at the end of each fiscal year or quarter."
+openapi: "data-api/openapi.yaml GET /financials/balance-sheets"
+hideApiMarker: true
+---
+
+## Overview
+
+Standardized balance sheets at the end of each period. `annual` gives fiscal year ends, `quarterly` every quarter end, and `ttm` the balance sheet of the quarter that closes the twelve months. `total_debt` adds current and non-current debt; `investments` adds current and non-current investments. Coverage, restatements and the checks are as for [income statements](/data-api/financials/income-statements#how-the-statements-are-built).
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+sheets = requests.get(
+    "https://darvas.app/api/data/v1/financials/balance-sheets",
+    headers=headers,
+    params={"ticker": "JPM", "period": "quarterly", "limit": 4},
+).json()
+for row in sheets["balance_sheets"]:
+    print(row["report_period"], row["total_assets"], row["deposit_liabilities"], row["shareholders_equity"])
+```

@@ -1,0 +1,115 @@
+---
+title: "Pivots"
+description: "Darvas JavaScript: ta.pivothigh and ta.pivotlow find swing highs and lows, and each pivot is known rightBars bars after the bar where it forms."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## Functions
+
+### `ta.pivothigh(source, leftBars, rightBars)`
+
+Looks at the bar `rightBars` back, the candidate. Returns its value when no bar among the `leftBars` bars before it and the `rightBars` bars after it is higher. Returns `NaN` otherwise. A bar with an equal value does not cancel the pivot.
+
+### `ta.pivotlow(source, leftBars, rightBars)`
+
+Returns the value of the candidate when no bar in the same window is lower. Returns `NaN` otherwise.
+
+Both functions return `NaN` when `leftBars` or `rightBars` is 0 or less, or when the window holds a `NaN`.
+
+## The lag
+
+<Warning>
+  A pivot needs `rightBars` bars after the candidate. The result on the current bar describes the bar `rightBars` back. You cannot detect a pivot on the bar where it forms. You learn about it `rightBars` bars later.
+</Warning>
+
+```js
+// overlay = true
+onBar(() => {
+  const ph = ta.pivothigh(ctx.high, 5, 5);
+  // If ph is not NaN, the pivot high is at bar ctx.i() - 5
+  if (!na(ph)) {
+    const pivotBar = ctx.i() - 5;
+    Line(`ph_${pivotBar}`, {
+      x1: pivotBar, y1: ph,
+      x2: ctx.i(),  y2: ph,
+      color: "#ef4444FF",
+      style: linestyle.arrow.right,
+    });
+  }
+});
+```
+
+Equal values do not cancel a pivot, so a run of equal highs can report more than one pivot high.
+
+## Parameters
+
+<ParamField path="source" type="source" required>
+  A source, usually `ctx.high` for pivot highs and `ctx.low` for pivot lows.
+</ParamField>
+
+<ParamField path="leftBars" type="number" required>
+  Number of bars before the candidate that must not be higher (for `pivothigh`) or lower (for `pivotlow`).
+</ParamField>
+
+<ParamField path="rightBars" type="number" required>
+  Number of bars after the candidate that must not be higher or lower. It is also the lag: the result is known `rightBars` bars after the candidate.
+</ParamField>
+
+## Basic example
+
+A plot `offset` of `-5` moves each mark back to its pivot bar:
+
+```js
+// overlay = true
+plot("Pivot high", null, { style: "circles", color: "#ef4444FF", offset: -5 });
+plot("Pivot low",  null, { style: "circles", color: "#22c55eFF", offset: -5 });
+
+onBar(() => {
+  plot("Pivot high", ta.pivothigh(ctx.high, 5, 5));
+  plot("Pivot low",  ta.pivotlow(ctx.low, 5, 5));
+});
+```
+
+The same with Marker entities. A Marker takes a bar open time, so pass `ctx.time(5)`:
+
+```js
+// overlay = true
+onBar(() => {
+  const ph = ta.pivothigh(ctx.high, 5, 5);
+  const pl = ta.pivotlow(ctx.low, 5, 5);
+
+  if (!na(ph)) {
+    Marker(`ph_${ctx.i()}`, { x: ctx.time(5), y: ph, shape: "circle", color: "#ef4444FF" });
+  }
+  if (!na(pl)) {
+    Marker(`pl_${ctx.i()}`, { x: ctx.time(5), y: pl, shape: "circle", color: "#22c55eFF" });
+  }
+});
+```
+
+## Choosing left and right bars
+
+| `leftBars` = `rightBars` | Effect |
+| --- | --- |
+| 2 to 3 | Many pivots, noisy |
+| 5 | A common balance |
+| 10 or more | Few pivots, only major swings |
+
+Different values are allowed, for example `ta.pivothigh(ctx.high, 3, 8)`.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Support/resistance example" href="/examples/support-resistance">
+    Full indicator using pivothigh, pivotlow and Line entities.
+  </Card>
+  <Card title="Aggregators" href="/ta/aggregators">
+    ta.highest and ta.lowest for simpler range detection.
+  </Card>
+  <Card title="NaN handling" href="/essentials/nan-handling">
+    Check pivot results with na() before you use them.
+  </Card>
+</CardGroup>

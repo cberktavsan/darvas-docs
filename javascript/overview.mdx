@@ -1,0 +1,106 @@
+---
+title: "Darvas JavaScript"
+description: "Darvas JavaScript: the entry page of the reference for the JavaScript indicator runtime, covering its two phases, sources, the overlay comment and links to every reference page."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## What Darvas JavaScript is
+
+Darvas JavaScript is the second runtime for custom indicators. A script is plain JavaScript with a Pine Script-shaped API: `input.*`, `plot()`, `ta.*`, `Series`, and drawing entities such as `Line` and `Box`. Darvas runs it on its servers in a sandboxed JavaScript engine, against the newest 1,000 candles of the chart, and draws the result.
+
+```js
+// overlay = true
+const len = input.int("Length", 14);
+const src = input.source("Source", "close");
+
+plot("MA", null, { color: "#22c55eFF", linewidth: 2 });
+
+onBar(() => {
+  plot("MA", ta.sma(src, len));
+});
+```
+
+The script has no access to the network, timers or `eval`. The [API limits](/reference/api-limits) page lists every budget and every refused construct.
+
+## Two phases
+
+```js
+// Top level: runs once per run.
+const len = input.int("Length", 14);         // a parameter, which returns its default
+const src = input.source("Source", "close");
+plot("MA", null, { color: "#22c55eFF" });    // register a plot and its style
+
+// onBar: runs once per bar, from the oldest bar to the newest.
+onBar((i) => {
+  const ma = ta.sma(src, len);   // the SMA at this bar
+  plot("MA", ma);                // write the value of this bar
+});
+```
+
+Top-level `const` and `let` values stay in scope for every `onBar` call, because `onBar` is a closure. Each run starts from a clean state. Inputs return their default values, because Darvas has no form that edits the inputs of a JavaScript indicator.
+
+<Note>
+  At the top level, `ctx.close()` and the other `ctx` accessors read the newest bar of the run. Put per-bar logic inside `onBar`. See [Script lifecycle](/essentials/script-lifecycle).
+</Note>
+
+## Sources
+
+`ta.*` functions read history through a source. A source is a function called with an offset, `(offset) => number`, or a `Series`. `ctx.close`, the other `ctx` accessors and the result of `input.source()` are sources.
+
+- Pass the accessor itself, `ta.rsi(ctx.close, 14)`, not its value, `ctx.close()`. A number returns `NaN`.
+- A function that ignores its offset, such as `() => x`, has no history. To pass a computed value to `ta.*`, set it on a `Series` in this bar and pass the Series.
+- Write a constant level for `ta.crossover` and `ta.crossunder` as `() => 70`. A plain `70` always returns `false`.
+
+## Overlay or own pane
+
+A script draws in its own pane under the chart. When the source contains `overlay=true` or `overlay:true`, with any spaces, it draws on the price chart instead. A comment is enough:
+
+```js
+// overlay = true
+```
+
+Every plot of one script draws in the same place. `barcolor()` always colors the candles of the price chart, and entities with `forceOverlay: true` draw on the price chart from a pane script.
+
+## Reference pages
+
+<CardGroup cols={2}>
+  <Card title="Script lifecycle" icon="clock-rotate-left" href="/essentials/script-lifecycle">
+    What runs once and what runs once per bar.
+  </Card>
+  <Card title="Inputs" icon="sliders" href="/essentials/inputs">
+    input.int, input.float, input.bool, input.string, input.color and input.source.
+  </Card>
+  <Card title="Bar context" icon="chart-bar" href="/essentials/bar-context">
+    ctx accessors, bar index and metadata.
+  </Card>
+  <Card title="Series" icon="chart-area" href="/essentials/series">
+    Per-bar storage, like Pine's `x[1]`.
+  </Card>
+  <Card title="NaN handling" icon="circle-question" href="/essentials/nan-handling">
+    na(), nz() and how NaN spreads.
+  </Card>
+  <Card title="math, str and color" icon="calculator" href="/essentials/math">
+    The math, str and color namespaces.
+  </Card>
+  <Card title="Plotting" icon="chart-line" href="/plotting/plot-basics">
+    plot(), plot styles, hline, fill, bgcolor and barcolor.
+  </Card>
+  <Card title="Drawing entities" icon="pen-ruler" href="/entities/overview">
+    Line, Box, Label, Marker and LineFill.
+  </Card>
+  <Card title="Technical analysis" icon="book" href="/ta/moving-averages">
+    Every ta.* function, from moving averages to pivots.
+  </Card>
+  <Card title="Examples" icon="code" href="/examples/bollinger-bands">
+    Full working indicators.
+  </Card>
+  <Card title="API limits" icon="gauge" href="/reference/api-limits">
+    Budgets, error codes and refused constructs.
+  </Card>
+  <Card title="Gotchas" icon="triangle-exclamation" href="/reference/gotchas">
+    Common traps and how to avoid them.
+  </Card>
+</CardGroup>

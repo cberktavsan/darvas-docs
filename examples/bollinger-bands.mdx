@@ -1,0 +1,88 @@
+---
+title: "Bollinger Bands"
+description: "Darvas JavaScript: a full Bollinger Bands indicator with fill() shading on the price chart, and a second pane indicator for %B and bandwidth."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## What this builds
+
+- Upper and lower Bollinger Bands, the SMA plus and minus 2 standard deviations
+- The basis line
+- Band shading with `fill()` on the plot handles
+- A second indicator with %B and bandwidth in its own pane
+
+## Full script
+
+```js
+// overlay = true
+const length = input.int("Length", 20);
+const mult   = input.float("StdDev Mult", 2.0);
+const src    = input.source("Source", "close");
+
+const upperPlot = plot("BB Upper", null, { color: "#3b82f6FF" });
+plot("BB Basis", null, { color: "#3b82f680" });
+const lowerPlot = plot("BB Lower", null, { color: "#3b82f6FF" });
+
+fill(upperPlot, lowerPlot, { color: "#3b82f615" });
+
+onBar(() => {
+  const bb = ta.bb(src, length, mult);
+  plot("BB Upper", bb.upper);
+  plot("BB Basis", bb.basis);
+  plot("BB Lower", bb.lower);
+});
+```
+
+## %B and bandwidth in a pane
+
+All plots of one indicator draw in the same place. With `// overlay = true` that is the price chart, and without it the indicator's own pane. %B moves between 0 and 1, so it needs its own pane. Add it as a second indicator without the overlay comment:
+
+```js
+const length = input.int("Length", 20);
+const mult   = input.float("Mult", 2.0);
+const src    = input.source("Source", "close");
+
+plot("BB %B",    null, { color: "#f59e0bFF" });
+plot("BB Width", null, { color: "#a78bfaFF" });
+
+hline(1, { color: "#ef4444FF" });
+hline(0, { color: "#22c55eFF" });
+
+onBar(() => {
+  const bb = ta.bb(src, length, mult);
+  if (na(bb.upper)) return;
+
+  // %B: where is the price within the band?
+  const width   = bb.upper - bb.lower;
+  const pctB    = width > 0 ? (src() - bb.lower) / width : 0.5;
+  const bbWidth = width / bb.basis * 100;
+
+  plot("BB %B",    pctB);
+  plot("BB Width", bbWidth);
+});
+```
+
+## Key notes
+
+- `ta.bb` returns `{ basis, upper, lower }`. There is no `middle` field.
+- All three values are `NaN` for the first `length - 1` bars. A `NaN` plot value draws nothing there.
+- `fill(upperPlot, lowerPlot, { color })` shades between the two plot handles. Pass the values that `plot()` returns.
+- `%B` is 1.0 at the upper band, 0.0 at the lower band and 0.5 at the basis. Values outside 0 to 1 mean the price is beyond the bands.
+- `src()` with no argument reads the current bar, the same as `src(0)`.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Volatility" href="/ta/volatility">
+    ta.bb and ta.keltner reference.
+  </Card>
+  <Card title="hline, fill, bgcolor" href="/plotting/hline-fill-bgcolor">
+    fill() syntax and budget.
+  </Card>
+  <Card title="NaN handling" href="/essentials/nan-handling">
+    Why the na(bb.upper) check guards the %B math.
+  </Card>
+</CardGroup>

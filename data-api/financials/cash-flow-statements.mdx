@@ -1,0 +1,25 @@
+---
+title: "Cash Flow Statements"
+sidebarTitle: "Cash Flow Statements"
+description: "Operating, investing and financing cash flows, capital expenditure and free cash flow of a company."
+openapi: "data-api/openapi.yaml GET /financials/cash-flow-statements"
+hideApiMarker: true
+---
+
+## Overview
+
+Standardized cash flow statements. Outflows are negative, as on the statement: `capital_expenditure`, repurchases in `issuance_or_purchase_of_equity_shares` and `dividends_and_other_cash_distributions`. `free_cash_flow` is operating cash flow plus capital expenditure, and null when either is unknown. Most 10-Qs report cash flows only year to date; their quarters are the difference of two filings. Coverage, restatements and the checks are as for [income statements](/data-api/financials/income-statements#how-the-statements-are-built).
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+flows = requests.get(
+    "https://darvas.app/api/data/v1/financials/cash-flow-statements",
+    headers=headers,
+    params={"ticker": "MSFT", "period": "ttm", "limit": 8},
+).json()
+for row in flows["cash_flow_statements"]:
+    print(row["report_period"], row["net_cash_flow_from_operations"], row["capital_expenditure"], row["free_cash_flow"])
+```

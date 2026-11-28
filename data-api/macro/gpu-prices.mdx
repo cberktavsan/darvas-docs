@@ -1,0 +1,29 @@
+---
+title: "GPU Rental Prices"
+sidebarTitle: "History"
+description: "The daily price of an hour on an NVIDIA H100, H200, GB200 or A100, or an AMD MI300X, from cloud on-demand list prices."
+openapi: "data-api/openapi.yaml GET /macro/gpu-prices"
+hideApiMarker: true
+---
+
+## Overview
+
+One row per day of a GPU model, newest first. Pass `series`; the models are listed by [GPU Price Series](/data-api/macro/gpu-prices-series).
+
+Darvas reads cloud on-demand list prices every hour. The price of a size with several GPUs is divided by its GPU count, and Windows, spot and low priority prices are left out. Each day's value is the median of its newest reading across sizes and regions, and `stability_band` is their standard deviation. The changes compare `value` with the day before, 7 days before and 30 days before.
+
+These are list prices. Reserved capacity and negotiated contracts cost less. Other clouds and marketplaces that rent other people's GPUs are not included yet.
+
+## Example
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+base = "https://darvas.app/api/data/v1/macro"
+
+h100 = requests.get(f"{base}/gpu-prices", headers=headers, params={"series": "h100"}).json()
+for day in h100["gpu_prices"]:
+    print(day["date"], day["value"], day["change_7d_pct"])
+```

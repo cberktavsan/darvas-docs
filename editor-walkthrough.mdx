@@ -1,0 +1,52 @@
+---
+title: "The indicator editor"
+description: "The parts of the Darvas custom indicator editor: the Darvas and Code tabs, logs, inputs, versions, drafts, renaming and deleting."
+---
+
+## Open the editor
+
+- **Desktop:** in `/terminal`, choose **Indicators** in the rail on the right of the chart. With Darvas V3, switch the V3 panel to **Custom indicator**.
+- **Mobile:** open the indicator menu, choose **Custom** and tap **New custom indicator**. The editor opens as a sheet.
+- **An indicator you saved:** choose its edit button in the **Custom** category of the indicator menu.
+
+## Header
+
+| Part | What it does |
+| --- | --- |
+| Indicator switcher | Opens one of your saved indicators, or starts a **New indicator**. |
+| Status | **New draft**, **Not saved**, **Saved**, or the current version, such as **v3**. |
+| **Save** | Saves the script. The first save asks for a name. Each name can be used once per account. |
+| **Share** | Opens the sharing settings. See [Share an indicator](/indicators/sharing). |
+| Menu | **New**, **Edit indicator details**, **Inputs**, **Share** and **Community indicators**. |
+
+**Edit indicator details** changes the name (up to 64 characters) and the description (up to 280 characters). Choose **Save** to keep the change.
+
+## Darvas tab
+
+The **Darvas** tab is the assistant. Describe an indicator, or paste a TradingView script, and Darvas writes or fixes the Pine Script, tests it on the chart and adds it. See [Write indicators with Darvas](/indicators/assistant).
+
+The tab also lists the versions of the indicator. Every change to the code is a version, whether Darvas or you made it. Choose **Restore** on an earlier version to make its code current again. Darvas saves the restore as a new version. Darvas keeps the newest 50 versions.
+
+On a saved indicator, **Set alert** creates an alert on its marks. See [Alerts on indicator marks](/indicators/alerts).
+
+## Code tab
+
+The **Code** tab holds the Pine source.
+
+- **Add to chart** runs the script on the chart's newest 1,000 candles and draws it. After the first run the button reads **Update chart**.
+- When the script fails, the editor marks the line and shows the error message.
+- **Logs** lists the lines from `log.info()`, `log.warning()` and `log.error()` with the bar each line came from, plus warnings from the runner, such as drawings left out over a cap. It keeps the newest 1,000 lines. Logs come only from runs in the editor.
+- A script written for Pine v1 to v4 runs after an automatic rewrite to v5. The editor then shows "Converted from Pine v4 automatically. Compare the result with TradingView."
+
+## Inputs
+
+**Inputs** in the menu, or the settings button of the indicator in the chart legend, opens a dialog with one field for each `input.*()` of the script. **Save** keeps your values and **Defaults** puts back the script's own. [Pine Script support](/pine/support#inputs) lists the input types and options the dialog shows.
+
+## Drafts
+
+A script you add to the chart without saving is a draft. It stays in your browser until you close Darvas, and then it is removed. Save it to keep it, to use it on other charts and devices, and to set alerts or share it.
+
+## Rename or delete an indicator
+
+- **Rename:** open the indicator, choose **Edit indicator details**, change the name and choose **Save**.
+- **Delete:** in the **Custom** category of the indicator menu, choose the delete button of the indicator and confirm. Deleting removes the saved source. If you shared the indicator, everyone who added it loses it too.

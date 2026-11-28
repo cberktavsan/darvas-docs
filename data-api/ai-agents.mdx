@@ -1,0 +1,61 @@
+---
+title: "AI agents"
+description: "How an AI agent finds every page of these docs, reads it as Markdown and calls the data API."
+---
+
+These docs are written for people and for the AI agents that work for them. An agent can list every page, read any page as Markdown, search the docs over MCP and call each endpoint as a tool.
+
+## What the site serves to agents
+
+| Path | What it holds |
+| --- | --- |
+| [`/llms.txt`](https://docs.darvas.app/llms.txt) | The index: every page with a one-line summary, in the order of the navigation, and how to call the API |
+| [`/llms-full.txt`](https://docs.darvas.app/llms-full.txt) | Every page in one Markdown file |
+| Page URL + `.md` | One page as Markdown, with its endpoint's parameters and answer from the OpenAPI spec, such as [`/data-api/cot.md`](https://docs.darvas.app/data-api/cot.md) |
+| [`openapi.yaml`](https://docs.darvas.app/data-api/openapi.yaml) | The OpenAPI 3.1 spec of every endpoint: parameters, schemas and examples |
+| [`/skill.md`](https://docs.darvas.app/skill.md) | What an agent can do with Darvas, in the agent skills format |
+| `/mcp` | An MCP server that searches and reads these docs |
+
+The menu in each page's header copies the page as Markdown, opens it in Claude, ChatGPT or Perplexity, or connects the docs search to Cursor or VS Code. API pages also download the spec.
+
+## Two MCP servers
+
+The docs search server, `https://docs.darvas.app/mcp`, answers questions about the docs: which endpoint gives insider sales, what a field means, how pagination works. It needs no key.
+
+The [data API server](/data-api/mcp), `https://darvas.app/api/data/v1/mcp`, answers with data: a company's income statements, a fund's holdings, last week's 8-Ks. It needs your API key, and each tool call counts against the key's [rate limit](/data-api/authentication) as one request.
+
+An agent that writes code against the API uses the first. An agent that answers questions with numbers uses the second, and the first when it needs to know which tool to call.
+
+## How an agent uses the docs
+
+1. Read `/llms.txt` to find the page of what it needs. Endpoint pages are grouped by dataset: financial statements, filings, insider trades, institutional holdings, prices, macro and the rest.
+2. Read that page's `.md`. It names the endpoint, every parameter with its type and limits, and an example answer.
+3. Call `https://darvas.app/api/data/v1` with the key in `X-API-KEY`. Companies go by `ticker` or `cik`; dates are `YYYY-MM-DD`.
+4. Follow `next_page_url` until the answer has none. See [Pagination](/data-api/pagination).
+5. On `429`, wait the seconds in `Retry-After`. Other errors carry a stable `error` code; see [Errors](/data-api/authentication#errors).
+
+## Add the docs to your agent
+
+Install the skill, so the agent knows what Darvas offers before it reads a page:
+
+```bash
+npx skills add https://docs.darvas.app
+```
+
+Connect the docs search to Claude Code:
+
+```bash
+claude mcp add --transport http darvas-docs https://docs.darvas.app/mcp
+```
+
+Connect the data API, with your key:
+
+```bash
+claude mcp add --transport http darvas https://darvas.app/api/data/v1/mcp --header "X-API-KEY: $DARVAS_API_KEY"
+```
+
+Or give the agent the index and let it read on:
+
+```text
+Read https://docs.darvas.app/llms.txt, then the pages you need, and use the Darvas data API with the key in DARVAS_API_KEY.
+```

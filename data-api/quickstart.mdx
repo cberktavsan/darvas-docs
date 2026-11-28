@@ -1,0 +1,48 @@
+---
+title: "Quickstart"
+description: "Make your first data API request."
+---
+
+<Steps>
+  <Step title="Get an API key">
+    Sign in to [Darvas](https://darvas.app), open **Settings → Data API** and start the free trial: 14 days and 100 requests, up to 10 a minute, once per account, with no card. Starting it creates your first key. A key looks like `dvk_` followed by 43 characters and is shown once; Darvas stores only its hash.
+  </Step>
+  <Step title="Send a request">
+    Pass the key in the `X-API-KEY` header.
+
+    <CodeGroup>
+    ```bash cURL
+    curl "https://darvas.app/api/data/v1/company/facts?ticker=AAPL" \
+      -H "X-API-KEY: $DARVAS_API_KEY"
+    ```
+
+    ```python Python
+    import os
+    import requests
+
+    response = requests.get(
+        "https://darvas.app/api/data/v1/company/facts",
+        headers={"X-API-KEY": os.environ["DARVAS_API_KEY"]},
+        params={"ticker": "AAPL"},
+    )
+    print(response.json()["company_facts"]["name"])
+    ```
+
+    ```javascript JavaScript
+    const response = await fetch(
+      "https://darvas.app/api/data/v1/company/facts?ticker=AAPL",
+      { headers: { "X-API-KEY": process.env.DARVAS_API_KEY } },
+    );
+    const { company_facts } = await response.json();
+    console.log(company_facts.name);
+    ```
+    </CodeGroup>
+  </Step>
+  <Step title="Try it in the docs">
+    Every endpoint page has a **Try it** button. Paste your key once and run requests from the page.
+  </Step>
+</Steps>
+
+## Coming from another provider
+
+Field names and query parameters follow the conventions of financialdatasets.ai, so a client written for it reads Darvas answers unchanged: change the base URL to `https://darvas.app/api/data/v1`. Fields Darvas adds come after the shared ones and can be ignored.

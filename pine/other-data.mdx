@@ -1,0 +1,84 @@
+---
+title: "Other symbols and data"
+description: "request.security(), indicator(timeframe=...), and the US company financials, earnings, dividends, splits and economic series that Pine scripts can read on Darvas."
+---
+
+## Another timeframe or symbol
+
+`request.security()` reads another timeframe of the chart's symbol, or another symbol that Darvas lists, such as a crypto pair.
+
+```pine
+//@version=6
+indicator("Daily close on intraday", overlay=true)
+dailyClose = request.security(syminfo.tickerid, "D", close)
+plot(dailyClose, "Daily close", color=color.orange)
+```
+
+- `syminfo.tickerid` and the chart's own pair read the chart's market.
+- Another symbol is matched against the markets Darvas lists. A ticker matches without separators, so `ETHUSDT` finds `ETH-USDT`. The `.P` suffix asks for the perpetual. Without it, spot comes first.
+- An exchange prefix, such as `OKX:` in `OKX:ETHUSDT`, picks the exchange that Darvas reads first, when your account can chart that exchange. The chart's exchange comes next. A prefix of an exchange that Darvas does not list, such as `COINBASE:`, stops the script with "`COINBASE` in `COINBASE:BTCUSD` is not an exchange on Darvas".
+- A symbol Darvas does not list, such as `DXY` or `SPY`, stops the script with "`DXY` is not available on Darvas".
+- Timeframes can be seconds, minutes, `D`, `W` and `M`, including non-standard ones such as `3D`. An unsupported timeframe stops the script with an error that names it.
+- A series covers the chart back to its first bar. A lower timeframe reads up to 5,000 bars, so on long charts the oldest bars can read `na`. A higher timeframe reads at least 500 of its own bars.
+- One run makes at most 12 data reads. Each distinct `request.*()` series counts as one read, and so does `indicator(timeframe=...)`.
+
+## Run the whole script on another timeframe
+
+`indicator(timeframe="D")` runs the script on that timeframe of the chart's symbol and places the values on the chart's bars, as on TradingView.
+
+- Write the timeframe as a string literal.
+- `timeframe_gaps` works as on TradingView. Gaps are on by default.
+- Labels, lines, boxes, tables, polylines and linefills cannot be combined with `timeframe=`. A script that draws them fails with an error.
+
+## US company data
+
+These calls read US companies' SEC filings. Each value appears on the day its filing was public. A later restatement changes the value from its own filing day, and earlier bars keep what was filed.
+
+| Call | What it returns |
+| --- | --- |
+| `request.financial(symbol, id, period)` | A reported value for `period` `FQ`, `FY` or `TTM`. |
+| `request.earnings(symbol, earnings.actual)` | Each quarter's diluted EPS, from its first filing. |
+| `request.dividends(symbol, dividends.gross)` | The cash dividend per share as paid, from its ex-date. Later splits do not adjust it. |
+| `request.splits(symbol, splits.numerator)` | A split's ratio from its first session. `splits.denominator` gives the other side. |
+
+The `request.financial` ids are `TOTAL_REVENUE`, `GROSS_PROFIT`, `OPER_INCOME`, `NET_INCOME`, `EBITDA`, `EARNINGS_PER_SHARE_BASIC`, `EARNINGS_PER_SHARE_DILUTED`, `DPS_COMMON_STOCK_PRIM_ISSUE`, `TOTAL_ASSETS`, `TOTAL_DEBT`, `TOTAL_EQUITY`, `CASH_N_EQUIVALENTS`, `TOTAL_SHARES_OUTSTANDING`, `DILUTED_SHARES_OUTSTANDING`, `CASH_F_OPERATING_ACTIVITIES`, `CAPITAL_EXPENDITURES`, `FREE_CASH_FLOW`, `BOOK_VALUE_PER_SHARE`, `GROSS_MARGIN` and `RETURN_ON_EQUITY`. `GROSS_MARGIN` and `RETURN_ON_EQUITY` are percentages.
+
+The symbol is an SEC ticker, with or without a US exchange prefix, such as `NASDAQ:AAPL` or `NYSE:BRK.B`. On an OKX stock swap or a Bybit xStocks chart, `syminfo.tickerid` names the stock that the market tracks. Any other symbol stops the script with "is not a US company on Darvas".
+
+```pine
+//@version=6
+indicator("P/E", overlay=false)
+eps = request.financial(syminfo.tickerid, "EARNINGS_PER_SHARE_DILUTED", "TTM", ignore_invalid_symbol=true)
+plot(close / eps, "P/E")
+```
+
+<Note>
+  An xStocks close is the price of one token, and one token may not equal one share. A ratio such as P/E then needs the token's share ratio.
+</Note>
+
+## US economic data
+
+`request.economic("US", field)` reads these fields, each from the day it was published:
+
+| Field | Series |
+| --- | --- |
+| `GDPQQ` | Real GDP growth, each quarter |
+| `IRYY` | Inflation rate: CPI change over 12 months |
+| `CIR` | Core inflation rate: core CPI change over 12 months |
+| `CPI` | Consumer price index, not seasonally adjusted |
+| `CCPI` | Core consumer price index, not seasonally adjusted |
+| `PCEPI` | PCE price index |
+| `CPCEPI` | Core PCE price index |
+| `UR` | Unemployment rate |
+| `NFP` | Non-farm payrolls: the change from the month before |
+| `LFPR` | Labor force participation rate |
+| `EMR` | Employment rate: the employment to population ratio |
+| `AWH` | Average weekly hours |
+| `INTR` | Interest rate: the midpoint of the federal funds target range. TradingView shows the upper bound. |
+
+## Values that read na
+
+- `earnings.estimate`, `earnings.standardized`, `dividends.net`, the period `FH`, the `currency` argument, other countries and other economic fields read `na`.
+- With `ignore_invalid_symbol=true`, `request.financial`, `request.earnings`, `request.dividends` and `request.splits` read `na` for a symbol Darvas cannot serve, such as a crypto pair, instead of stopping the script.
+- `request.economic` reads `na` when Darvas cannot serve the field.
+- With `barmerge.gaps_on`, a value shows only on the bar where it changed. Without it, the value holds on every later bar.

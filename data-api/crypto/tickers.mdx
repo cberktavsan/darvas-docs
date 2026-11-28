@@ -1,0 +1,16 @@
+---
+title: "Crypto Tickers"
+sidebarTitle: "Tickers"
+description: "Every OKX and Hyperliquid instrument Darvas stores candles of."
+openapi: "data-api/openapi.yaml GET /crypto/tickers"
+hideApiMarker: true
+---
+
+## Overview
+
+The instruments [Crypto Prices](/data-api/crypto/prices) answers for, from Darvas's instrument catalog, which the exchange adapters rewrite every four hours.
+
+```bash
+curl -H "X-API-KEY: $DARVAS_API_KEY" \
+  "https://darvas.app/api/data/v1/crypto/tickers?exchange=hyperliquid"
+```

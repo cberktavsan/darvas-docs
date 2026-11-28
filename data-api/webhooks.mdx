@@ -1,0 +1,90 @@
+---
+title: "Webhooks"
+description: "A signed POST to your server when new filings, statements, insider forms or macro releases arrive."
+---
+
+A webhook destination is an HTTPS URL that receives an event each time Darvas stores new data of the types you choose. Darvas sends the event as soon as it stores the data, usually within a second.
+
+## Create a destination
+
+```bash
+curl -X POST "https://darvas.app/api/data/v1/webhooks" \
+  -H "X-API-KEY: $DARVAS_API_KEY" -H "Content-Type: application/json" \
+  -d '{"url": "https://hooks.example.com/darvas", "events": ["earnings.created", "insider_trades.created"]}'
+```
+
+The answer carries the destination and its signing secret, `whsec_...`. The secret is shown this once; keep it with your server. `GET /webhooks` lists your destinations without secrets, `DELETE /webhooks/{webhook_id}` removes one, and `POST /webhooks/{webhook_id}/test` sends it a test event with `livemode: false` within a second. You can send one test event a minute.
+
+The account's plan sets how many destinations can be active: none in the trial, 2 in Starter, 10 in Developer and 50 in Business. The URL must use HTTPS and reach a public address: private, loopback and link-local addresses are refused when the destination is made and again at every delivery.
+
+## Events
+
+| Family | Event types | `data.object` |
+| --- | --- | --- |
+| Earnings | `earnings.created` | The filing: `ticker`, `cik`, `accession_number`, `form_type`, `filing_date`, `report_period`, `url` |
+| Financial statements | `income_statements.created`, `balance_sheets.created`, `cash_flow_statements.created`, `financial_metrics.created` | The same |
+| Segments | `income_statement_segments.created`, `balance_sheet_segments.created`, `cash_flow_statement_segments.created` | The same |
+| Earnings releases | `operating_kpis.created`, `forward_guidance.created`, `non_gaap_metrics.created` | The same, and `metrics`, the names read |
+| Insider activity | `insider_trades.created`, `insider_ownership.created`, `insider_sale_notices.created` | The same |
+| Filings | `filing_items.metadata.created` | The same, and `available_items` |
+| Macro | `yield_curve.created`, `inflation.created`, `labor.created`, `gdp.created`, `interest_rates.created` | `dataset`, `date`, `series` (or `banks`) and `url` |
+
+`url` is the API request that answers the new rows: an event tells you what changed, and you fetch the data with your key. Statement events come only for filings of the last three days, so the nightly rebuild of older statements sends nothing.
+
+[Darvas Pro+ webhooks](/pro/webhooks) receive these events too, along with alarm, schedule, economic calendar, ETF flow and connection events.
+
+## Deliveries
+
+Each delivery is a POST of a JSON envelope:
+
+```json
+{
+  "id": "evt_5f0c3a1b9d2e4f6a7b8c9d0e1f2a3b4c",
+  "type": "income_statements.created",
+  "api_version": "2026-11-26",
+  "livemode": true,
+  "created": 1795687200,
+  "data": {
+    "object": {
+      "ticker": "AAPL",
+      "cik": 320193,
+      "accession_number": "0000320193-26-000106",
+      "form_type": "10-Q",
+      "filing_date": "2026-11-25",
+      "report_period": "2026-09-27",
+      "url": "https://darvas.app/api/data/v1/financials/income-statements?cik=320193&period=quarterly&limit=1"
+    }
+  }
+}
+```
+
+The headers are `Content-Type: application/json`, `User-Agent: Darvas-Webhook/1.0` and `Darvas-Signature: t=<unix seconds>,v1=<hex>`. A delivery succeeds on any 2xx answer within ten seconds; redirects are not followed. Each destination receives its events one at a time, oldest first, so a slow server delays only its own events. A failed delivery is tried again about a minute later and about ten minutes after that, then given up. A destination whose last 50 attempts failed is disabled: delete it and make a new one once your server answers. The same event can arrive twice and in any order, so use `id` to skip one you have seen.
+
+## Verify the signature
+
+`v1` is the HMAC-SHA256 of `{t}.{raw body}` under your secret. Compute it over the raw bytes you received, compare in constant time, and refuse a `t` more than five minutes from your clock.
+
+```python
+import hashlib
+import hmac
+import time
+
+
+def verify(secret: str, header: str, body: bytes) -> bool:
+    parts = dict(part.split("=", 1) for part in header.split(","))
+    timestamp = int(parts["t"])
+    expected = hmac.new(secret.encode(), f"{timestamp}.".encode() + body, hashlib.sha256).hexdigest()
+    return abs(time.time() - timestamp) <= 300 and hmac.compare_digest(expected, parts["v1"])
+```
+
+```javascript
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+export function verify(secret, header, body) {
+  const parts = Object.fromEntries(header.split(",").map((part) => part.split("=")));
+  const expected = createHmac("sha256", secret).update(`${parts.t}.${body}`).digest("hex");
+  const fresh = Math.abs(Date.now() / 1000 - Number(parts.t)) <= 300;
+  const given = Buffer.from(parts.v1 ?? "");
+  return fresh && given.length === expected.length && timingSafeEqual(Buffer.from(expected), given);
+}
+```

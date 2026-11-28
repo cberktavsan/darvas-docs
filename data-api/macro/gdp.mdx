@@ -1,0 +1,34 @@
+---
+title: "GDP and Income"
+sidebarTitle: "History"
+description: "12 US growth and income series from the national accounts: GDP since 1947, contributions to growth, profits, income and saving."
+openapi: "data-api/openapi.yaml GET /macro/gdp"
+hideApiMarker: true
+---
+
+## Overview
+
+One row per quarter or month of a series. Pass `series`; the ids are listed by [GDP Series](/data-api/macro/gdp-series).
+
+| Series | Frequency | BEA code |
+| --- | --- | --- |
+| `real_gdp_growth`, `real_gdp`, `nominal_gdp` | Quarterly | A191RL, A191RX, A191RC |
+| `consumption_contribution`, `investment_contribution`, `net_exports_contribution`, `government_contribution` | Quarterly | DPCERY, A006RY, A019RY, A822RY |
+| `real_gdi_growth`, `corporate_profits` | Quarterly | A261RL, A051RC |
+| `personal_income`, `saving_rate`, `real_pce` | Monthly | A065RC, A072RC, DPCERX |
+
+Quarters are dated by their first day. Every estimate of a quarter (advance, second, third, annual revisions) adds a value; `value` is the newest. For quarters released since 25 November 2026, `first_published_value` is the advance estimate.
+
+## Example
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+base = "https://darvas.app/api/data/v1/macro"
+
+growth = requests.get(f"{base}/gdp", headers=headers, params={"series": "real_gdp_growth", "start_date": "2024-01-01"}).json()
+for quarter in growth["gdp"]:
+    print(quarter["date"], quarter["value"], "first estimate", quarter["first_published_value"])
+```

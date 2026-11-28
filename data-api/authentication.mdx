@@ -1,0 +1,64 @@
+---
+title: "Authentication and limits"
+description: "API keys, plans, rate limits, quotas and the errors the API returns."
+---
+
+## API keys
+
+Send the key in the `X-API-KEY` header, or as a Bearer token:
+
+```bash
+curl "https://darvas.app/api/data/v1/filings?ticker=AAPL" -H "X-API-KEY: dvk_..."
+curl "https://darvas.app/api/data/v1/filings?ticker=AAPL" -H "Authorization: Bearer dvk_..."
+```
+
+Create keys in Darvas under **Settings → Data API**. An account holds up to 10 live keys; each key's secret is shown once, when it is made. Rename or revoke a key on the same page, and a revoked key stops working at once.
+
+Keep keys on servers. A key in browser code or a public repository can be read by anyone: revoke it and create a new one. A key Darvas issued to you by email keeps the limits agreed with it, and [support@darvas.app](mailto:support@darvas.app) revokes it.
+
+## Plans
+
+Every key you create shares your account's plan. Only successful answers (`2xx`) count against the quota; an answer with an error costs nothing.
+
+| Plan | Requests | Per minute | Webhook destinations |
+| --- | --- | --- | --- |
+| Trial | 100 in 14 days, once per account | 10 | none |
+| Starter | 100,000 a month | 120 | 2 |
+| Developer | 1,000,000 a month | 500 | 10 |
+| Business | 10,000,000 a month | 2,000 | 50 |
+| Enterprise | by contract | by contract | by contract |
+
+A monthly quota starts again at 00:00 UTC on the first day of each month.
+
+## Rate limits and quotas
+
+Every answer carries the per-minute limit in `X-RateLimit-Limit`. A request over it gets `429` with `RATE_LIMITED` and `Retry-After`, the seconds to wait.
+
+Answers to the keys you create also carry the quota:
+
+| Header | Meaning |
+| --- | --- |
+| `X-Quota-Limit` | The successful answers the period allows. |
+| `X-Quota-Remaining` | What is left of them after this request. |
+| `X-Quota-Reset` | When the quota starts again, or the trial ends, in seconds since 1970 (UTC). |
+
+Once the quota is used up, requests get `429` with `QUOTA_EXCEEDED` until the next month starts. The trial's quota does not start again.
+
+## Errors
+
+Errors are JSON with a stable `error` code and an English `message`.
+
+| Status | `error` | Meaning |
+| --- | --- | --- |
+| 400 | `VALIDATION_ERROR` | A parameter is missing or malformed. The message names it. |
+| 401 | `UNAUTHORIZED` | The key is missing, unknown or revoked. |
+| 403 | `PLAN_REQUIRED` | The key's account has no active plan, for example after the trial. |
+| 404 | `NOT_FOUND` | No company has this ticker or CIK. |
+| 429 | `RATE_LIMITED` | Too many requests this minute. |
+| 429 | `QUOTA_EXCEEDED` | The plan's requests for this period are used up. |
+| 500 | `INTERNAL_ERROR` | Darvas failed. The error is reported to the team. |
+| 503 | `UNAVAILABLE` | The data store is down. Retry later. |
+
+```json
+{ "error": "NOT_FOUND", "message": "No company has this ticker or CIK" }
+```

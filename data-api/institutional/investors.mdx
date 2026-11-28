@@ -1,0 +1,16 @@
+---
+title: "Institutional Investors"
+sidebarTitle: "Investors"
+description: "Find a 13F filer's CIK by the start of its name."
+openapi: "data-api/openapi.yaml GET /institutional-holdings/investors"
+hideApiMarker: true
+---
+
+## Overview
+
+Up to 100 managers whose name starts with `name`, in any case, under the name on their newest report. Use the `cik` as `filer_cik` in [Institutional Holdings](/data-api/institutional/holdings).
+
+```bash
+curl -H "X-API-KEY: $DARVAS_API_KEY" \
+  "https://darvas.app/api/data/v1/institutional-holdings/investors?name=berkshire"
+```

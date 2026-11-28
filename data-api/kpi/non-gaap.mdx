@@ -1,0 +1,25 @@
+---
+title: "Non-GAAP Metrics"
+sidebarTitle: "Non-GAAP"
+description: "Adjusted EBITDA, adjusted net income, non-GAAP EPS and other non-GAAP metrics from earnings release reconciliations."
+openapi: "data-api/openapi.yaml GET /kpi/non-gaap"
+hideApiMarker: true
+---
+
+## Overview
+
+The adjusted lines of the reconciliation tables in each earnings release: each with the GAAP line the table starts from, such as `Net income`, and the lines between as `key_adjustments`. Values are the release's quarter, scaled as the table states; ratios and margins are left out.
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+body = requests.get(
+    "https://darvas.app/api/data/v1/kpi/non-gaap",
+    headers=headers,
+    params={"ticker": "HLT", "metric_name": "adjusted_ebitda", "limit": 4},
+).json()
+for line in body["kpi_non_gaap"]:
+    print(line["period"], line["value"], line["gaap_equivalent"], "|", line["key_adjustments"])
+```

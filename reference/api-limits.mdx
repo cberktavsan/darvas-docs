@@ -1,0 +1,100 @@
+---
+title: "API limits"
+description: "Darvas JavaScript: every runtime limit, covering source size, memory, time budgets, bars per run, plots, hlines, fills, bar colors, Series, entities, console output and the refused constructs."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## Runtime budgets
+
+| Resource | Limit | When it is exceeded |
+| --- | --- | --- |
+| Source script size | 50 KB (51,200 bytes) | The request is refused before the run |
+| Heap memory | 64 MB | `HEAP_LIMIT` |
+| Stack size | 1 MB | `RUNTIME_ERROR` |
+| Top-level code | 1.5 s wall-clock | `TIMEOUT` |
+| Each `onBar` call | 50 ms wall-clock | `TIMEOUT` |
+| Whole run | 10 s wall-clock | `TIMEOUT` |
+| Bars per run | The newest 1,000 chart candles | Older bars are not sent |
+
+The other error codes are `INVALID_REQUEST`, `AST_REJECTED`, `COMPILE_FAILED`, `RUNTIME_ERROR` and `INVALID_OUTPUT`. A syntax error is `AST_REJECTED` with a message that starts with "syntax error". An uncaught exception, including every `TypeError` on this page, is `RUNTIME_ERROR`.
+
+## Output budgets
+
+| Output | Limit | When it is exceeded |
+| --- | --- | --- |
+| `plot()` plots | 64 | The call for a 65th plot stops the run with `INVALID_OUTPUT` |
+| `hline()` | 64 | The output is refused and the indicator draws nothing |
+| `fill()` | 64 | The output is refused and the indicator draws nothing |
+| `bgcolor()` and `barcolor()` points together | 20,000, one per bar and call | The output is refused and the indicator draws nothing |
+
+There is no 1,000-entry limit and no truncation for `bgcolor` and `barcolor`.
+
+## Entity budgets
+
+| Entity type | Per-type limit | When it is exceeded |
+| --- | --- | --- |
+| Line | 500 | The 501st new key throws a `TypeError`, "Line limit exceeded (500)", and stops the script |
+| Box | 500 | The same, "Box limit exceeded (500)" |
+| Label | 500 | The same, "Label limit exceeded (500)" |
+| Marker | 500 | The same, "Marker limit exceeded (500)" |
+| LineFill | 500 | The same, "LineFill limit exceeded (500)" |
+| **Drawings that reach the chart** | **1,500** | The rest are dropped without a message |
+
+The per-type limit counts live entities. A deleted entity frees its slot. When more than 1,500 drawings remain at the end of the run, the runtime keeps lines first, then boxes, labels, markers and linefills, with keys sorted as strings within each kind.
+
+## Series budget
+
+| Resource | Limit | Notes |
+| --- | --- | --- |
+| Series | 64 per script | Counts the hidden Series of `ta.macd`, `ta.cci`, `ta.dmi`, `ta.mfi`, `ta.accdist`, `ta.barssince` and `ta.cum` |
+| History per Series | Newest 5,000 values | A chart run has at most 1,000 bars |
+
+A Series counts from its first `set()` call. Every unique key passed to `ta.barssince(key, ...)` or `ta.cum(key, ...)` takes one slot. The `set()` call that would create a 65th Series throws a `TypeError`, "Series limit exceeded (64)".
+
+## Console output budget
+
+| Resource | Limit |
+| --- | --- |
+| Console lines | 100 per run |
+| Characters per line | 200 |
+
+`console.log` and `console.warn` output is captured with the run, and lines past the limit are dropped. The Darvas editor does not show the output of a JavaScript indicator.
+
+## Refused constructs
+
+The parser checks the script before it runs and refuses it with `AST_REJECTED` when it contains any of these:
+
+- The identifiers `Function`, `eval`, `globalThis`, `window` and `self`
+- `WebAssembly`, `Atomics`, `SharedArrayBuffer`, `Reflect` and `Proxy`
+- `setTimeout`, `setInterval`, `setImmediate` and `queueMicrotask`
+- `fetch`, `XMLHttpRequest`, `WebSocket`, `Worker` and `ServiceWorker`
+- `process`, `require`, `__dirname` and `__filename`
+- The property names `__proto__`, `constructor` and `prototype`
+- `import` and `export` declarations, and dynamic `import()`
+- `with` statements
+- `async function` and `async () =>`
+- Generator functions
+- `for await ... of`
+- `while (true)` and `for (;;)` without a `break`, `return` or `throw` in the body
+- A `for` loop whose literal bound is above 100,000
+
+## Removed globals
+
+The runtime also removes these globals before the script runs, so they are `undefined`: `Promise`, `Symbol`, `WeakMap`, `WeakSet`, `WeakRef`, `FinalizationRegistry`, `BigInt`, `BigInt64Array`, `BigUint64Array`, `Request`, `Response`, `Headers`, `Buffer` and `global`. `Math`, `Map`, `Set`, `Array`, `JSON`, `Date` and `String` stay available.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Performance tips" href="/reference/performance">
+    How to stay within the time budgets.
+  </Card>
+  <Card title="Troubleshooting" href="/reference/troubleshooting">
+    Common limit-related error messages.
+  </Card>
+  <Card title="Series" href="/essentials/series">
+    Details of the 64-Series budget.
+  </Card>
+</CardGroup>

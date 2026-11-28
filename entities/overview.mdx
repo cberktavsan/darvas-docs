@@ -1,0 +1,142 @@
+---
+title: "Drawing entities overview"
+description: "Darvas JavaScript: Line, Box, Label, Marker and LineFill are keyed drawings that persist across bars, with one slot per key and a handle API to change them."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## What are entities?
+
+Drawing entities are drawings on the chart: Lines, Boxes, Labels, Markers and LineFills. `plot()` writes one value per bar. An entity is a **keyed** object that persists across bars, and you can change it in place.
+
+```js
+// Create a support line once and set its color from the newest close
+const support = Line("support", {
+  x1: 0,   y1: 42000,
+  x2: 100, y2: 42000,
+  color: "#22c55eFF",
+});
+
+onBar(() => {
+  if (!ctx.isLast()) return;
+  support.set({ color: ctx.close() < 42500 ? "#ef4444FF" : "#22c55eFF" });
+});
+```
+
+The chart shows each entity as it stands at the end of the run.
+
+## Coordinates
+
+- For `Line`, `Box` and `Label`, `x` is a bar index, the value of `ctx.i()`. `0` is the oldest bar of the run.
+- For `Marker`, `x` is a bar open time in unix seconds, the value of `ctx.time()`. A bar index puts the marker in the wrong place.
+- `y` is a price, or a value on the indicator's own scale for a pane indicator.
+
+Coordinates are required when you create an entity, and they must be finite numbers. A `NaN` coordinate becomes `null` in the options JSON, and the call throws a `TypeError` that stops the script. In `handle.set()`, a `NaN` coordinate keeps the old value.
+
+## Options are checked
+
+An option name that the entity does not know throws a `TypeError` that names the unknown field. An option whose name starts with `_` is dropped before the check.
+
+## The slot model
+
+**1 key = 1 slot.** Each key string occupies one slot per entity kind. `key` must be a non-empty string. Calling the same factory with the same key replaces the slot:
+
+- The last call wins.
+- The slot holds the options of the most recent call.
+- The slot persists across bars, so you do not need to recreate the entity on every bar.
+
+```js
+// Every bar updates the SAME line slot. It does not create one line per bar.
+onBar(() => {
+  Line("trend", {
+    x1: ctx.i() - 20, y1: nz(ta.lowest(ctx.low, 20), ctx.low()),
+    x2: ctx.i(),      y2: ctx.close(),
+    color: "#22c55eFF",
+  });
+});
+```
+
+## Handles go stale
+
+Every factory call for a key returns a fresh handle and makes every older handle for that key stale. A stale handle's `.set()` does nothing and logs a console warning. Its `.delete()` does nothing and returns `false`.
+
+<Warning>
+  If you call `Line("my-line", opts)` twice, a handle from the **first** call no longer changes the line. Always keep the return value of the most recent call.
+</Warning>
+
+```js
+let line = Line("sr", { x1: 0, y1: 100, x2: 10, y2: 100, color: "#22c55eFF" });
+
+onBar(() => {
+  if (ctx.close() < 95) {
+    // Correct: keep the new handle
+    line = Line("sr", { x1: 0, y1: 95, x2: ctx.i(), y2: 95, color: "#ef4444FF" });
+  }
+  // Use the current handle to change the line
+  line.set({ x2: ctx.i() });
+});
+```
+
+## Handle API
+
+Every entity factory returns a handle with three methods:
+
+<ParamField path="handle.set(opts)" type="handle">
+  Changes only the given options. Returns the handle. Does nothing on a stale handle.
+</ParamField>
+
+<ParamField path="handle.clone(newKey)" type="handle">
+  Copies the entity to `newKey` and returns a handle to the copy. `newKey` must be a non-empty string that differs from the source key. Cloning a stale handle throws a `TypeError`, and so does cloning a LineFill.
+</ParamField>
+
+<ParamField path="handle.delete()" type="boolean">
+  Removes the entity and frees its slot. Returns `false` on a stale handle. `entity.delete(handle)` does the same.
+</ParamField>
+
+```js
+const h = Line("my-line", { x1: 0, y1: 0, x2: 1, y2: 1, color: "#22c55eFF" });
+
+h.set({ color: "#ef4444FF", y2: 2 });  // change in place
+const h2 = h.clone("my-line-copy");    // copy to a new key
+h.delete();                            // remove the original
+```
+
+## Entity budgets
+
+| Type | Per-type limit |
+| --- | --- |
+| Line | 500 |
+| Box | 500 |
+| Label | 500 |
+| Marker | 500 |
+| LineFill | 500 |
+| **Drawings that reach the chart** | **1,500** |
+
+The per-type limit counts live entities, so a deleted entity frees its slot. Creating a 501st entity of one kind throws a `TypeError`, such as "Line limit exceeded (500)", and stops the script.
+
+At most 1,500 drawings reach the chart. The runtime drops the rest without a message, in this order: lines, boxes, labels, markers, then linefills, with keys sorted as strings within each kind. See [API limits](/reference/api-limits) for all budget values.
+
+## Entity types
+
+<CardGroup cols={2}>
+  <Card title="Line" href="/entities/line">
+    Line segment between two bar index and price points.
+  </Card>
+  <Card title="Box" href="/entities/box">
+    Rectangular zone with fill, border, text and extend options.
+  </Card>
+  <Card title="Label" href="/entities/label">
+    Text label at a bar index and price.
+  </Card>
+  <Card title="Marker" href="/entities/marker">
+    Shape such as a circle, diamond or arrow at a bar time and price.
+  </Card>
+  <Card title="LineFill" href="/entities/linefill">
+    Filled area between two Line entities.
+  </Card>
+  <Card title="Constants" href="/entities/constants">
+    linestyle, shape, size, extend and text constants.
+  </Card>
+</CardGroup>

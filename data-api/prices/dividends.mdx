@@ -1,0 +1,27 @@
+---
+title: "Dividends"
+description: "A US stock's cash dividends per share by ex-dividend date, as paid and scaled to today's share."
+openapi: "data-api/openapi.yaml GET /dividends"
+hideApiMarker: true
+---
+
+## Overview
+
+Every cash dividend a US stock has paid since its first session, oldest first. `amount` is what one share received on the `ex_date`, in `currency`. `adjusted_amount` divides it by every split since then, so it compares with today's share and with [split-adjusted prices](/data-api/prices/historical): Apple's $0.82 of August 2020 is $0.205 after the 4-for-1 split that followed.
+
+A new dividend appears after its ex-dividend session closes. A stock that has never paid one answers an empty list. Amounts from before a split come back from split-scaled values, so the oldest can differ from the declared figure in their last digit.
+
+## Example
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+dividends = requests.get(
+    "https://darvas.app/api/data/v1/dividends",
+    headers=headers,
+    params={"ticker": "AAPL", "start_date": "2025-01-01"},
+).json()["dividends"]
+print(sum(row["amount"] for row in dividends))
+```

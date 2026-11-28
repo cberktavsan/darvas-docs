@@ -1,0 +1,137 @@
+---
+title: "Crossovers"
+description: "Darvas JavaScript: ta.crossover, ta.crossunder and ta.cross compare two sources on this bar and the previous one, and ta.rising and ta.falling test N bars of steady change."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## Overview
+
+Crossover functions read two sources at offsets 0 and 1, the current and the previous bar, and return a `boolean`. They return `false` when any of the four values is na.
+
+<Note>
+  Both `a` and `b` must be sources: a function called with an offset, or a `Series`. A plain number is not a source. `ta.crossover(a, 70)` always returns `false`. Write a constant level as the function `() => 70`.
+</Note>
+
+## `ta.crossover(a, b)`: a crosses above b
+
+Returns `true` when `a` was at or below `b` on the previous bar and is above `b` on the current bar.
+
+```js
+// overlay = true
+plot("Cross", null, { style: "arrowup", color: "#22c55eFF" });
+
+onBar(() => {
+  const bullCross = ta.crossover(ctx.close, ctx.open);
+  plot("Cross", bullCross ? ctx.low() : NaN);
+});
+```
+
+To cross two computed values, store each one in a `Series` on this bar, then pass the Series:
+
+```js
+// overlay = true
+const fastSeries = Series("fast-ema");
+const slowSeries = Series("slow-ema");
+
+plot("Cross", null, { style: "arrowup", color: "#22c55eFF" });
+
+onBar(() => {
+  fastSeries.set(ta.ema(ctx.close, 9));
+  slowSeries.set(ta.ema(ctx.close, 21));
+
+  const crossed = ta.crossover(fastSeries, slowSeries);
+  plot("Cross", crossed ? ctx.low() * 0.998 : NaN);
+});
+```
+
+## `ta.crossunder(a, b)`: a crosses below b
+
+Returns `true` when `a` was at or above `b` on the previous bar and is below `b` on the current bar.
+
+```js
+// overlay = true
+const rsiSeries = Series("rsi");
+const overbought = () => 70;
+
+plot("OB Exit", null, { style: "arrowdown", color: "#ef4444FF" });
+
+onBar(() => {
+  rsiSeries.set(ta.rsi(ctx.close, 14));
+  const crossed = ta.crossunder(rsiSeries, overbought);
+  plot("OB Exit", crossed ? ctx.high() * 1.001 : NaN);
+});
+```
+
+## `ta.cross(a, b)`: either direction
+
+Returns `true` when `a` crosses `b` in either direction. Unlike `ta.crossover` and `ta.crossunder`, it needs `a` strictly below or strictly above `b` on the previous bar. A cross that starts from equal values returns `false`.
+
+```js
+const rsiSeries = Series("rsi");
+const mid = () => 50;
+
+onBar(() => {
+  rsiSeries.set(ta.rsi(ctx.close, 14));
+  if (ta.cross(rsiSeries, mid)) bgcolor("#f59e0b20");
+});
+```
+
+## `ta.rising(source, length)`: rising over N bars
+
+Returns `true` when the value rose on every one of the last `length` bars, each value above the one before it. A single flat or lower bar in that stretch gives `false`.
+
+```js
+// overlay = true
+onBar(() => {
+  if (ta.rising(ctx.close, 5)) bgcolor("#22c55e10");
+});
+```
+
+## `ta.falling(source, length)`: falling over N bars
+
+Returns `true` when the value fell on every one of the last `length` bars.
+
+```js
+// overlay = true
+onBar(() => {
+  if (ta.falling(ctx.close, 5)) bgcolor("#ef444410");
+});
+```
+
+## Source type requirement
+
+The `a` and `b` arguments of `ta.crossover`, `ta.crossunder` and `ta.cross`, and the `source` of `ta.rising` and `ta.falling`, must be sources. A number returns `false` and does not throw. `ta.crossover` and `ta.crossunder` also log the warning `source must be a function or Series; got number - returning NaN`.
+
+A function that ignores its offset, such as `() => rsi`, returns the same value for the current and the previous bar, so it never crosses anything.
+
+```js
+// Correct: ctx.close and ctx.open are sources
+ta.crossover(ctx.close, ctx.open);
+
+// Correct: a Series and a constant level as a function
+ta.crossunder(rsiSeries, () => 70);
+
+// Wrong: numbers, always false
+// ta.crossover(ctx.close(), ctx.open());
+// ta.crossunder(rsiSeries, 70);
+
+// Wrong: () => rsi has no history, always false
+// ta.crossunder(() => rsi, () => 70);
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Moving averages" href="/ta/moving-averages">
+    Common sources for crossover signals.
+  </Card>
+  <Card title="Oscillators" href="/ta/oscillators">
+    RSI crossings of 70 and 30 are a classic use case.
+  </Card>
+  <Card title="Series" href="/essentials/series">
+    Store computed values so crossover functions can read them.
+  </Card>
+</CardGroup>

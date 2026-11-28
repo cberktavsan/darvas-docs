@@ -1,0 +1,108 @@
+---
+title: "LineFill"
+description: "Darvas JavaScript: LineFill(key, lineA, lineB, opts) shades the area between two Line entities and follows the keys of those lines."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## Signature
+
+```ts
+LineFill(key, lineA, lineB, opts?) -> handle
+```
+
+A `LineFill` shades the region between two `Line` entities. It stores the keys of the two lines, not their handles. A Line that you re-create under the same key keeps its fill.
+
+## Quick example
+
+```js
+// overlay = true
+const top = Line("upper-band", { x1: 0, y1: 105, x2: 50, y2: 105, color: "#22c55eFF" });
+const bot = Line("lower-band", { x1: 0, y1: 95,  x2: 50, y2: 95,  color: "#22c55eFF" });
+
+const fill = LineFill("band-fill", top, bot, {
+  color: "#22c55e30",
+});
+```
+
+## Arguments
+
+<ParamField path="key" type="string" required>
+  A non-empty string that names this fill's slot.
+</ParamField>
+
+<ParamField path="lineA" type="handle" required>
+  A handle returned by `Line()`.
+</ParamField>
+
+<ParamField path="lineB" type="handle" required>
+  A handle returned by `Line()`.
+</ParamField>
+
+<ParamField path="color" type="string">
+  Fill color. Default: `"rgba(34,197,94,0.16)"`, a faint green. Use a low alpha, for example `#22c55e30`. `color` is the only option.
+</ParamField>
+
+Passing something other than two handles throws a `TypeError` with the message "LineFill requires two Line handles".
+
+## Source lines
+
+<Warning>
+  `handle.set()` on a LineFill changes only its `color`. To fill between two other lines, delete the fill and create a new one, or call `LineFill` again with the same key.
+</Warning>
+
+```js
+// Point the fill at two other lines
+fill.delete();
+const newFill = LineFill("band-fill", newTop, newBot, { color: "#ef444430" });
+```
+
+The runtime checks the two lines at the end of the run. It drops the fill without an error or a console message when:
+
+- either line no longer exists, for example after `delete()`, or
+- the two lines have different `forceOverlay` values.
+
+## Handle methods
+
+```js
+fill.set({ color: "#a78bfa30" }); // change the fill color
+fill.delete();                    // remove the fill
+```
+
+`clone()` does not work on a LineFill. It throws a `TypeError`. To copy a fill, call `LineFill` with a new key and the same two lines.
+
+## Bollinger Bands fill example
+
+```js
+// overlay = true
+// Shade the current Bollinger Band range over the last 50 bars
+onBar(() => {
+  if (!ctx.isLast()) return;
+
+  const bb = ta.bb(ctx.close, 20, 2);
+  if (na(bb.upper)) return;
+
+  const start = math.max(0, ctx.i() - 50);
+  const upper = Line("bb-upper", { x1: start, y1: bb.upper, x2: ctx.i(), y2: bb.upper, color: "#3b82f6FF" });
+  const lower = Line("bb-lower", { x1: start, y1: bb.lower, x2: ctx.i(), y2: bb.lower, color: "#3b82f6FF" });
+  LineFill("bb-fill", upper, lower, { color: "#3b82f620" });
+});
+```
+
+A Line is straight, so a LineFill shades between two straight segments. To shade bands that follow every bar, plot them and use [`fill()`](/plotting/hline-fill-bgcolor).
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Line" href="/entities/line">
+    Line entity. Both source lines of a LineFill are Line handles.
+  </Card>
+  <Card title="fill() primitive" href="/plotting/hline-fill-bgcolor">
+    fill() shades between two plots, not Line entities.
+  </Card>
+  <Card title="Bollinger Bands example" href="/examples/bollinger-bands">
+    Full working Bollinger Bands with fill() shading.
+  </Card>
+</CardGroup>

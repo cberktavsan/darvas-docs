@@ -1,0 +1,141 @@
+---
+title: "Marker"
+description: "Darvas JavaScript: Marker(key, opts) places a persistent shape such as a circle, square or diamond at a bar open time and price."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## Signature
+
+```ts
+Marker(key, opts) -> handle
+```
+
+A `Marker` is a persistent keyed shape. `plot(..., { style: "circles" })` writes a value on every bar. A Marker is a single annotation that you create and manage yourself.
+
+<Warning>
+  A Marker's `x` is a bar open time in unix seconds, not a bar index. Pass `ctx.time()` or `ctx.time(offset)`. Line, Box and Label take a bar index.
+</Warning>
+
+## Quick example
+
+```js
+// overlay = true
+onBar(() => {
+  if (!ctx.isLast()) return;
+  Marker("last-close", {
+    x: ctx.time(),
+    y: ctx.close(),
+    shape: "diamond",
+    color: "#22c55eFF",
+  });
+});
+```
+
+## Options
+
+<ParamField path="x" type="number" required>
+  x coordinate as a bar open time in unix seconds, for example `ctx.time()`.
+</ParamField>
+
+<ParamField path="y" type="number" required>
+  y coordinate as a price.
+</ParamField>
+
+<ParamField path="shape" type="string">
+  Shape name. One of `"circle"`, `"square"`, `"triangle_up"`, `"triangle_down"`, `"diamond"`, `"cross"`, `"x"`, `"arrow_up"` or `"arrow_down"`. Default: `"circle"`.
+</ParamField>
+
+<ParamField path="color" type="string">
+  Marker color as a hex string. Default: `"#22c55e"`.
+</ParamField>
+
+<ParamField path="size" type="number">
+  Accepted, but the chart does not read it. Every marker draws 10 pixels across.
+</ParamField>
+
+<ParamField path="zIndex" type="number">
+  Accepted, but the chart does not use it.
+</ParamField>
+
+<ParamField path="forceOverlay" type="boolean">
+  When `true`, a pane indicator draws the marker on the price chart. Default: `false`.
+</ParamField>
+
+Any other option name throws a `TypeError`.
+
+## Shape values
+
+| Value | Appearance on the chart |
+| --- | --- |
+| `"circle"` | Filled circle |
+| `"square"` | Filled square |
+| `"diamond"` | Diamond |
+| `"cross"` | Plus sign (+) |
+| `"x"` | X shape |
+| `"triangle_up"` | Drawn as an X shape |
+| `"triangle_down"` | Drawn as an X shape |
+| `"arrow_up"` | Drawn as an X shape |
+| `"arrow_down"` | Drawn as an X shape |
+
+The runtime accepts all nine names, but the chart draws only the first five as named. For an up or down arrow at a bar, use a plot with the `arrowup` or `arrowdown` style.
+
+You can also use the `shape.*` constants:
+
+```js
+Marker("sig", { x: ctx.time(), y: ctx.high(), shape: shape.diamond });
+```
+
+## Handle methods
+
+```js
+marker.set({ shape: "square", color: "#22c55eFF" });
+marker.clone("buy-signal-2");
+marker.delete();
+```
+
+## Marker vs plot circles
+
+<Note>
+  `Marker`, a persistent entity, and `plot(..., { style: "circles" })`, a per-bar plot, look alike but behave differently. Use `Marker` for an annotation on a specific bar. Use plot circles for a computed value on every bar.
+</Note>
+
+## Signal annotation example
+
+```js
+// overlay = true
+const rsiSeries = Series("rsi");
+const oversold = () => 30;
+
+onBar(() => {
+  rsiSeries.set(ta.rsi(ctx.close, 14));
+
+  if (ta.crossunder(rsiSeries, oversold)) {
+    // RSI crossed below 30
+    Marker(`os_${ctx.i()}`, {
+      x: ctx.time(),
+      y: ctx.low() * 0.998,
+      shape: "circle",
+      color: "#22c55eFF",
+    });
+  }
+});
+```
+
+`ta.crossunder` needs two sources, so the level 30 is the function `() => 30`, and the RSI value goes through a Series.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Label" href="/entities/label">
+    Text annotations at a point.
+  </Card>
+  <Card title="Plot styles" href="/plotting/plot-styles">
+    circles, arrowup and arrowdown plot styles for per-bar marks.
+  </Card>
+  <Card title="Constants" href="/entities/constants">
+    shape.* values.
+  </Card>
+</CardGroup>

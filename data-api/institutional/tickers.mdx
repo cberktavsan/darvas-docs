@@ -1,0 +1,16 @@
+---
+title: "Institutional Tickers"
+sidebarTitle: "Tickers"
+description: "Every ticker that a 13F report of the last 15 months holds."
+openapi: "data-api/openapi.yaml GET /institutional-holdings/tickers"
+hideApiMarker: true
+---
+
+## Overview
+
+The tickers [Institutional Holdings](/data-api/institutional/holdings) answers for, sorted. A security appears once its CUSIP has a US ticker; options, bonds and some funds have no ticker and are left out.
+
+```bash
+curl -H "X-API-KEY: $DARVAS_API_KEY" \
+  "https://darvas.app/api/data/v1/institutional-holdings/tickers"
+```

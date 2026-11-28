@@ -1,0 +1,27 @@
+---
+title: "Forward Guidance"
+sidebarTitle: "Guidance"
+description: "The ranges and point estimates companies guide to in their earnings releases, with revisions."
+openapi: "data-api/openapi.yaml GET /kpi/guidance"
+hideApiMarker: true
+---
+
+## Overview
+
+Guidance for revenue, EPS and adjusted EPS, adjusted EBITDA, margins, operating income, capital expenditures and free cash flow, for the period the release names: `Q3 2026` or `FY 2026`. A range gives `low` and `high`, with their midpoint as `value`; a single figure gives `point_estimate`, and `plus or minus 2%` gives the range around it. A revision (`raised ... from $480 million–$495 million to $525 million–$540 million`) gives the new range, the old midpoint as `prior_value` and `change_direction`.
+
+Darvas reads guidance by rules from the sentences that expect a metric for a period and from tables with low and high ends. A percent guided for an amount is its growth: `revenue_growth`, `eps_growth`. `raw_text` is the sentence or table line.
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+body = requests.get(
+    "https://darvas.app/api/data/v1/kpi/guidance",
+    headers=headers,
+    params={"ticker": "NVDA", "limit": 4},
+).json()
+for guide in body["kpi_guidance"]:
+    print(guide["period"], guide["metric_name"], guide.get("low"), guide.get("high"), guide.get("change_direction"))
+```

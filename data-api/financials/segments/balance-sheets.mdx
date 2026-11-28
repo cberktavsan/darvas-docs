@@ -1,0 +1,26 @@
+---
+title: "Balance Sheet Segments"
+sidebarTitle: "Balance Sheet"
+description: "Assets, goodwill and long-lived assets by business segment and region."
+openapi: "data-api/openapi.yaml GET /financials/balance-sheets/segments"
+hideApiMarker: true
+---
+
+## Overview
+
+A segment value is a fact the filing reports on the product or service axis (`product`), the geographical axis (`geography`) or the business segment axis (`segment`) alone, for its own period: revenue, operating income and depreciation on the income statement; assets, goodwill and long-lived assets on the balance sheet; capital expenditure on the cash flow statement. Labels are the filing's own, such as `iPhone`, `Other countries` or `Americas`. A line the filing does not break down is null. `annual` reads 10-K, 20-F and 40-F filings, `quarterly` 10-Q filings.
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+body = requests.get(
+    "https://darvas.app/api/data/v1/financials/balance-sheets/segments",
+    headers=headers,
+    params={"ticker": "AAPL", "period": "annual", "limit": 4},
+).json()
+for period in body["balance_sheet_segments"]:
+    assets = period["assets"] or {"product": [], "geography": [], "segment": []}
+    print(period["fiscal_period"], [(item["label"], item["value"]) for item in assets["segment"]])
+```

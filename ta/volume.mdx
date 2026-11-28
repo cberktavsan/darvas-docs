@@ -1,0 +1,125 @@
+---
+title: "Volume indicators"
+description: "Darvas JavaScript: ta.vwap, ta.obv, ta.accdist and ta.mfi combine price and volume, and ta.vwap and ta.obv add up over the whole run."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## `ta.vwap(price, volume)`: cumulative VWAP
+
+Returns the volume-weighted average price from the first bar of the run to the current bar.
+
+```js
+// overlay = true
+plot("VWAP", null, { color: "#f59e0bFF", linewidth: 2 });
+
+onBar(() => {
+  plot("VWAP", ta.vwap(ctx.hlc3, ctx.volume));
+});
+```
+
+<Note>
+  `ta.vwap` adds up over every bar of the run, at most the newest 1,000 chart candles. It is not anchored to a session open. For a session VWAP, keep the sums in two Series and reset them at the start of each session.
+</Note>
+
+```js
+// overlay = true
+// VWAP that restarts at 00:00 UTC
+const pvSum = Series("vwap-pv");
+const vSum  = Series("vwap-v");
+plot("Daily VWAP", null, { style: "linebr", color: "#f59e0bFF" });
+
+onBar(() => {
+  const day = math.floor(ctx.time() / 86400);
+  const newDay = na(ctx.time(1)) || math.floor(ctx.time(1) / 86400) !== day;
+
+  pvSum.set((newDay ? 0 : pvSum.get(1)) + ctx.hlc3() * ctx.volume());
+  vSum.set((newDay ? 0 : vSum.get(1)) + ctx.volume());
+
+  plot("Daily VWAP", vSum.get() > 0 ? pvSum.get() / vSum.get() : NaN);
+});
+```
+
+## `ta.obv(close, volume)`: On-Balance Volume
+
+A running sum over the run: it adds the volume on bars that close higher and subtracts it on bars that close lower. It starts at 0 on the first bar of the run.
+
+```js
+plot("OBV", null, { color: "#22c55eFF" });
+
+onBar(() => {
+  plot("OBV", ta.obv(ctx.close, ctx.volume));
+});
+```
+
+## `ta.accdist(high, low, close, volume)`: Accumulation/Distribution
+
+A cumulative volume indicator. The close location value, `((close - low) - (high - close)) / (high - low)`, decides how much of each bar's volume counts as accumulation or distribution. A bar with `high` equal to `low` adds nothing. The argument order is high, low, close, volume.
+
+```js
+plot("A/D", null, { color: "#3b82f6FF" });
+
+onBar(() => {
+  plot("A/D", ta.accdist(ctx.high, ctx.low, ctx.close, ctx.volume));
+});
+```
+
+`ta.accdist` keeps one hidden state for the whole script. Call it once per bar. See [hidden state](/ta/oscillators#hidden-state).
+
+## `ta.mfi(high, low, close, volume, length)`: Money Flow Index
+
+An oscillator from 0 to 100 that combines price and volume, often called a volume-weighted RSI. By convention, above 80 is overbought and below 20 is oversold. It returns 100 when the window has no negative money flow.
+
+```js
+hline(80, { color: "#ef4444FF" });
+hline(20, { color: "#22c55eFF" });
+plot("MFI", null, { color: "#a78bfaFF" });
+
+onBar(() => {
+  plot("MFI", ta.mfi(ctx.high, ctx.low, ctx.close, ctx.volume, 14));
+});
+```
+
+`ta.mfi` keeps hidden state keyed by `length`. Call it once per bar. See [hidden state](/ta/oscillators#hidden-state).
+
+## Volume trend analysis
+
+OBV against its own moving average. Store OBV in a Series so `ta.sma` can read its history:
+
+```js
+const obvSeries = Series("obv");
+
+plot("OBV",     null, { color: "#22c55eFF" });
+plot("OBV SMA", null, { color: "#22c55e60" });
+
+onBar(() => {
+  const obv = ta.obv(ctx.close, ctx.volume);
+  obvSeries.set(obv);
+  const obvSma = ta.sma(obvSeries, 20);
+
+  plot("OBV",     obv);
+  plot("OBV SMA", obvSma);
+
+  // OBV above its SMA: bullish volume trend
+  if (na(obvSma)) return;
+  bgcolor(obv > obvSma ? "#22c55e10" : "#ef444410");
+});
+```
+
+`ta.sma(() => obv, 20)` would read the current OBV for all 20 bars and return OBV itself.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Oscillators" href="/ta/oscillators">
+    RSI and MACD, and the hidden state rules.
+  </Card>
+  <Card title="Aggregators" href="/ta/aggregators">
+    ta.cum for custom cumulative calculations.
+  </Card>
+  <Card title="Bar context" href="/essentials/bar-context">
+    The ctx.volume source function.
+  </Card>
+</CardGroup>

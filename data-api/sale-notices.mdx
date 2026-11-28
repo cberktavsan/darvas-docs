@@ -1,0 +1,52 @@
+---
+title: "Insider Sale Notices"
+sidebarTitle: "Sale Notices"
+description: "Planned insider sales from SEC Form 144: what the seller may sell, how they got the shares and what they sold in the three months before."
+openapi: "data-api/openapi.yaml GET /insider-trades/sale-notices"
+hideApiMarker: true
+---
+
+## Overview
+
+An officer, director or other affiliate who plans to sell restricted or control shares files Form 144 before the sale. One row per notice, newest filing first. A notice says how many shares the seller may sell and through which broker, how and when the seller acquired them, and what the seller sold in the three months before.
+
+| Coverage | Details |
+| --- | --- |
+| History | Every notice filed as XML, which SEC has required since April 2023, and the earlier XML notices |
+| Updated | Within about a minute of acceptance, from each new notice's XML |
+| Forms | 144, 144/A |
+| Companies | Any: without `ticker` or `cik` the newest notices of every company come first |
+| Page size | 100; `limit` counts across pages, up to 10,000 |
+
+A notice is not a trade. The sale itself, if it happens, shows up later on a Form 4 in [Insider Trades](/data-api/insider-trades). `plan_adoption_dates` names the Rule 10b5-1 plans the sale falls under; it is empty when the seller names none. A corrected notice (`144/A`) is a row of its own, and `replaces_accession_number` names the notice it corrects.
+
+## Filtering
+
+- `ticker` or `cik`: one company. Leave both out for every company.
+- `name`: sellers whose name holds every word, in any order and any case, so `stepien` or `thomas stepien` both match THOMAS M STEPIEN.
+- `filing_date`, `filing_date_gte`, `filing_date_lte`, `filing_date_gt`, `filing_date_lt`: ISO dates.
+
+## Examples
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+url = "https://darvas.app/api/data/v1/insider-trades/sale-notices"
+
+# Today's notices across the market, largest planned sale first
+today = requests.get(url, headers=headers, params={"filing_date": "2026-11-24", "limit": 500}).json()
+largest = sorted(
+    today["sale_notices"],
+    key=lambda notice: sum(c["market_value"] or 0 for c in notice["securities"]),
+    reverse=True,
+)
+for notice in largest[:10]:
+    value = sum(c["market_value"] or 0 for c in notice["securities"])
+    print(notice["ticker"], notice["name"], round(value))
+
+# Notices of one company that fall under a 10b5-1 plan
+nvda = requests.get(url, headers=headers, params={"ticker": "NVDA", "limit": 100}).json()
+print(sum(1 for notice in nvda["sale_notices"] if notice["plan_adoption_dates"]))
+```

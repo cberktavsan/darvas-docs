@@ -1,0 +1,44 @@
+---
+title: "Darvas documentation"
+sidebarTitle: "Overview"
+description: "The Darvas data API and custom indicators."
+---
+
+Darvas collects financial data from the institutions that publish it: SEC EDGAR, the US Treasury, the Bureau of Labor Statistics, the Bureau of Economic Analysis, the Department of Labor and the Bank for International Settlements. The same data powers the Darvas terminal and the data API documented here.
+
+<CardGroup cols={2}>
+  <Card title="Data API quickstart" icon="bolt" href="/data-api/quickstart">
+    Make your first request with an API key in two minutes.
+  </Card>
+  <Card title="Market coverage" icon="database" href="/data-api/coverage">
+    The markets, companies and history each dataset covers, and how fast it updates.
+  </Card>
+  <Card title="Insider trades" icon="user-tie" href="/data-api/insider-trades">
+    Form 4 and 5 transactions since 2006, read about a minute after each filing.
+  </Card>
+  <Card title="Custom indicators" icon="chart-line" href="/introduction">
+    Write Pine Script indicators for Darvas charts, or describe one to the Darvas assistant.
+  </Card>
+</CardGroup>
+
+## What the API covers
+
+| Dataset | Endpoints | Source | History |
+| --- | --- | --- | --- |
+| Company profiles | [`/company/facts`](/data-api/company-facts) | SEC submissions | Every SEC filer |
+| SEC filings | [`/filings`](/data-api/filings) | SEC EDGAR | Since 1994 |
+| Insider trades | [`/insider-trades`](/data-api/insider-trades) | Forms 4 and 5 | Since 2006 |
+| Insider holdings | [`/insider-ownership`](/data-api/insider-ownership) | Forms 3 and 5 | Since 2006 |
+| Insider sale notices | [`/insider-trades/sale-notices`](/data-api/sale-notices) | Form 144 | Every XML notice, since April 2023 |
+| Institutional holdings | [`/institutional-holdings`](/data-api/institutional/holdings) | Form 13F | Since 2013 |
+| Fund holdings | [`/index-funds`](/data-api/funds/holdings) | Form N-PORT | Since 2019 |
+| IPOs | [`/ipos`](/data-api/ipos) | S-1, F-1, 424B4 | Since January 2025 |
+| Crypto prices | [`/crypto/prices`](/data-api/crypto/prices) | OKX, Hyperliquid | Every minute |
+| 5% owners | [`/beneficial-ownership`](/data-api/ownership/beneficial) | Schedules 13D and 13G | Since December 2024 |
+| Policy rates | [`/macro/interest-rates`](/data-api/macro/interest-rates) | BIS | 31 central banks, the Fed since 1954 |
+| Treasury yields | [`/macro/yield-curve`](/data-api/macro/yield-curve) | US Treasury | 14 tenors since 1990 |
+| Inflation | [`/macro/inflation`](/data-api/macro/inflation) | BLS, BEA | CPI since 1947, PCE since 1959 |
+| Labor market | [`/macro/labor`](/data-api/macro/labor) | BLS, Department of Labor | Payrolls since 1939 |
+| Growth and income | [`/macro/gdp`](/data-api/macro/gdp) | BEA | GDP since 1947 |
+
+Every value names its source: an SEC accession number, or a publisher and series code. Macro values keep the figure as it was first published next to the current, revised one.

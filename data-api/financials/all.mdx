@@ -1,0 +1,25 @@
+---
+title: "All Financial Statements"
+sidebarTitle: "All Statements"
+description: "The income statement, balance sheet and cash flow statement of each period in one request."
+openapi: "data-api/openapi.yaml GET /financials"
+hideApiMarker: true
+---
+
+## Overview
+
+One request returns the three statements of the same periods: `financials.income_statements`, `financials.balance_sheets` and `financials.cash_flow_statements`, newest period first. The fields are the ones the single statement endpoints return; see [how the statements are built](/data-api/financials/income-statements#how-the-statements-are-built).
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+body = requests.get(
+    "https://darvas.app/api/data/v1/financials",
+    headers=headers,
+    params={"ticker": "AAPL", "period": "annual", "limit": 5},
+).json()
+for income, cash in zip(body["financials"]["income_statements"], body["financials"]["cash_flow_statements"]):
+    print(income["fiscal_period"], income["revenue"], cash["free_cash_flow"])
+```

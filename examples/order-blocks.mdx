@@ -1,0 +1,110 @@
+---
+title: "Order blocks"
+description: "Darvas JavaScript: detect order blocks from engulfing bars with high volume, draw them as Box entities that extend right, and grey them out once price trades through."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## What this builds
+
+- Bullish order blocks: a bearish bar followed by a bullish engulfing bar with above-average volume
+- Bearish order blocks: a bullish bar followed by a bearish engulfing bar with above-average volume
+- Each block drawn as a `Box` with `extend: "right"`, so it runs on to the right edge of the chart
+- A block turns grey and stops extending when the price closes through it (mitigation)
+
+## Full script
+
+```js
+// overlay = true
+const volMult    = input.float("Volume multiplier", 1.5);
+const volLen     = input.int("Volume MA length", 20);
+const bullColor  = input.color("Bullish OB color", "#22c55e25");
+const bearColor  = input.color("Bearish OB color", "#ef444425");
+const bullBorder = input.color("Bullish border",   "#22c55eFF");
+const bearBorder = input.color("Bearish border",   "#ef4444FF");
+const mitColor   = input.color("Mitigated color",  "#6b728040");
+
+// The newest unmitigated block on each side: its handle and its far edge
+let activeBull = null;
+let activeBear = null;
+
+function drawBlock(key, top, bottom, fill, border, label) {
+  return Box(key, {
+    x1: ctx.i() - 1, y1: bottom,
+    x2: ctx.i() + 1, y2: top,
+    color: fill,
+    borderColor: border,
+    extend: "right",
+    text: label,
+    textColor: border,
+    textSize: "xs",
+    textHAlign: "left",
+    textVAlign: "top",
+  });
+}
+
+function mitigate(block) {
+  block.handle.set({ color: mitColor, borderColor: "#6b7280FF", extend: "none", x2: ctx.i() });
+}
+
+onBar(() => {
+  const volMa     = ta.sma(ctx.volume, volLen);
+  const isHighVol = !na(volMa) && ctx.volume() > volMa * volMult;
+
+  const prevBear = ctx.open(1) > ctx.close(1);
+  const prevBull = ctx.open(1) < ctx.close(1);
+  const curBull  = ctx.close() > ctx.open();
+  const curBear  = ctx.close() < ctx.open();
+
+  const bullEngulf = prevBear && curBull && ctx.close() > ctx.open(1) && isHighVol;
+  const bearEngulf = prevBull && curBear && ctx.close() < ctx.open(1) && isHighVol;
+
+  // Mitigation: a close below a bullish block or above a bearish block
+  if (activeBull && ctx.close() < activeBull.bottom) {
+    mitigate(activeBull);
+    activeBull = null;
+  }
+  if (activeBear && ctx.close() > activeBear.top) {
+    mitigate(activeBear);
+    activeBear = null;
+  }
+
+  if (bullEngulf) {
+    const handle = drawBlock(`bull_ob_${ctx.i() - 1}`, ctx.open(1), ctx.low(1), bullColor, bullBorder, "Bull OB");
+    activeBull = { handle: handle, bottom: ctx.low(1) };
+  }
+  if (bearEngulf) {
+    const handle = drawBlock(`bear_ob_${ctx.i() - 1}`, ctx.high(1), ctx.open(1), bearColor, bearBorder, "Bear OB");
+    activeBear = { handle: handle, top: ctx.high(1) };
+  }
+});
+```
+
+## Mitigation tracking
+
+The script keeps the handle of the newest unmitigated block on each side in a top-level variable. Top-level `let` values persist across bars. When a close passes the far edge of the block, `handle.set()` changes its colors, turns off `extend`, and ends it at the current bar. `set()` changes only the options you pass.
+
+This version tracks one block per side. To track every block, keep the active blocks in an array and check each one on every bar.
+
+## Notes
+
+- `extend: "right"` runs the box on to the right edge of the chart until you set `extend: "none"`.
+- Use unique keys such as `bull_ob_${ctx.i() - 1}` so each block gets its own slot.
+- Box entities count toward the [500-per-type entity budget](/reference/api-limits). The 501st Box throws a `TypeError` and stops the script.
+- The default Box `color` is opaque white, so always set `color`.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Box entity" href="/entities/box">
+    Full Box options, including extend.
+  </Card>
+  <Card title="Drawing entities overview" href="/entities/overview">
+    Handles, set() and the slot model.
+  </Card>
+  <Card title="API limits" href="/reference/api-limits">
+    The 500 Box entity budget.
+  </Card>
+</CardGroup>

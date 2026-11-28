@@ -1,0 +1,48 @@
+---
+title: "Institutional Holdings"
+sidebarTitle: "Holdings"
+description: "What investment managers hold, from their quarterly Form 13F reports: by manager or by security, since 2013."
+openapi: "data-api/openapi.yaml GET /institutional-holdings"
+hideApiMarker: true
+---
+
+## Overview
+
+Every manager with $100 million or more in US-listed equities files Form 13F within 45 days of each quarter end. Send `filer_cik` for one manager's report, or `ticker` for every manager holding a security.
+
+| Coverage | Details |
+| --- | --- |
+| History | Every 13F report since 2013 Q2, from SEC's Form 13F Data Sets, and each later filing's XML |
+| Updated | Within about a minute of acceptance |
+| Managers | About 9,900 reports a quarter |
+| Tickers | Mapped from each CUSIP; `cusip` is always there |
+| Page size | 100; `limit` counts across pages |
+
+## How positions are built
+
+- A manager often splits one security over several rows: by voting authority, or by the other managers that share discretion. A position sums those rows; `subsidiaries` lists them with their row number in the information table.
+- For each manager and quarter the report in force is the newest original or restatement, plus every "new holdings" amendment filed after it. `accession_number` and `filing_date` name the report in force.
+- Without `report_period`, `filer_cik` gives the manager's newest report, and `ticker` gives one position per manager whose newest report, filed within the last 15 months, holds the security. Managers that sold out do not appear.
+- `value_usd` is in dollars. Reports filed before 3 January 2023 stated thousands; they are multiplied. Some managers kept writing thousands after that date: `reported_price` far below the market price shows it.
+
+## Examples
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+url = "https://darvas.app/api/data/v1/institutional-holdings"
+
+# Berkshire Hathaway's newest report, largest positions first
+berkshire = requests.get(url, headers=headers, params={"filer_cik": "1067983", "limit": 20}).json()
+for position in berkshire["institutional_holdings"]:
+    print(position["ticker"], position["shares"], position["value_usd"])
+
+# Who held NVIDIA at the end of June 2026
+holders = requests.get(
+    url, headers=headers, params={"ticker": "NVDA", "report_period": "2026-06-30", "limit": 100}
+).json()
+for position in holders["institutional_holdings"][:10]:
+    print(position["filer_name"], position["shares"])
+```

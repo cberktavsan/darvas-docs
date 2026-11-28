@@ -1,0 +1,42 @@
+---
+title: "KPI Metrics"
+sidebarTitle: "KPIs"
+description: "Sector KPIs from earnings releases, such as load factor, CET1 ratio, net interest margin, same-store sales and FFO per share."
+openapi: "data-api/openapi.yaml GET /kpi/metrics"
+hideApiMarker: true
+---
+
+## Overview
+
+The operating figures a company reports beside its financial statements, read from the press release furnished with each 8-K under Item 2.02. Each value carries the sentence or table line it was read from, and `source_url` opens the exhibit on sec.gov with that text highlighted.
+
+| Sector | KPIs |
+| --- | --- |
+| Airlines | `load_factor`, `available_seat_miles`, `revenue_passenger_miles` |
+| Banks | `cet1_ratio`, `net_interest_margin`, `efficiency_ratio`, `return_on_average_equity`, `return_on_average_assets`, `tangible_book_value_per_share` |
+| REITs | `ffo_per_share`, `affo_per_share`, `occupancy` |
+| Retail | `same_store_sales` |
+| Hotels | `revpar`, `average_daily_rate` |
+| Industrials | `book_to_bill`, `backlog` |
+| Software | `net_revenue_retention`, `annual_recurring_revenue` |
+| Telecom and media | `arpu`, `subscribers` |
+
+## How values are read
+
+Darvas reads them by rules, not with a language model: a KPI's name followed within a few words by a number in its unit, or a percent right before it, as in `14.39% CET1 capital ratio`. A number outside the range the KPI can take is left out. Values come only from releases whose earnings figures agreed with the company's XBRL, so the release was read right; the period is that release's. `yoy_value` is the earlier figure a sentence compares with, and `yoy_change_pct` the change against it as a decimal.
+
+`limit` counts releases across pages, 4 by default and at most 50; each page holds up to 10 records.
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+body = requests.get(
+    "https://darvas.app/api/data/v1/kpi/metrics",
+    headers=headers,
+    params={"ticker": "ASB", "metric_name": "net_interest_margin", "limit": 8},
+).json()
+for kpi in body["kpi_metrics"]:
+    print(kpi["period"], kpi["value"], kpi["unit"], kpi["source_url"])
+```

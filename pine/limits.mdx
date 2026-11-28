@@ -1,0 +1,51 @@
+---
+title: "Limits"
+description: "Run time, bar count, script size, output caps, data reads, logs and request limits for Pine Script indicators on Darvas."
+---
+
+## Runs
+
+| Limit | Value |
+| --- | --- |
+| Bars a run reads | The newest 1,000 candles of the chart |
+| Run time | 10 seconds. Waiting for a `request.*()` series does not count, up to 15 seconds for each read. |
+| Loop iterations | 200,000. A loop that runs longer stops the script. |
+| Script length | 100,000 characters |
+| Data reads | 12 distinct series in one run, each up to 5,000 bars |
+| Saved indicator runs | 1,800 an hour for each account. A chart runs its indicators again on every new candle. |
+
+A script that passes its run time stops with "script exceeded its time budget".
+
+## Output
+
+When a run passes one of these caps, Darvas draws the first plots, hlines, fills and inputs and the newest drawings and colored bars. It writes a warning to the editor's **Logs**, such as "only 5000 of 6120 drawings are drawn".
+
+| Output | Cap |
+| --- | --- |
+| Plots | 64 |
+| `hline()` | 64 |
+| `fill()` | 64 |
+| Drawings: labels, lines, boxes, linefills, polylines and tables | 5,000. A `plotshape()`, `plotchar()`, `plotcandle()` or table counts once, however many bars it marks. |
+| `bgcolor()` bars | 20,000 for all `bgcolor()` calls together |
+| `barcolor()` bars | 20,000 for all `barcolor()` calls together |
+| Inputs | 1,000 |
+
+## Logs
+
+| Limit | Value |
+| --- | --- |
+| Log lines | The newest 1,000, each up to 1,000 characters |
+| Runner warnings | 50 |
+
+Only runs in the editor keep logs.
+
+## Indicators and the assistant
+
+| Limit | Value |
+| --- | --- |
+| Indicator name | 64 characters, unique in your account |
+| Description | 280 characters |
+| Versions kept | The newest 50 |
+| Drafts in the browser | 25 |
+| Assistant requests | 60 an hour |
+| Active indicator alerts | 5 |

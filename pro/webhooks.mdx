@@ -1,0 +1,226 @@
+---
+title: "Darvas Pro+ webhooks"
+sidebarTitle: "Webhooks"
+description: "A signed HTTPS POST to your server when an alarm fires or pauses, a scheduled task answers, an economic release you follow comes out, ETF flows update, a connection ends or new company data arrives."
+---
+
+A Darvas Pro+ webhook sends a signed POST to your HTTPS endpoint each time an event it subscribes to happens. Darvas sends an event as soon as it stores the event, usually within a second.
+
+## Plans
+
+Webhooks are part of Darvas Pro+. A Pro+ account can have 15 webhooks on at once. A webhook that is off does not count toward the 15. Darvas Free and Darvas Pro, including Pro through an OKX account opened with Darvas, have no webhooks.
+
+When Pro+ ends, your webhooks stop receiving new events and show **Paused by plan**. You can still read their deliveries and delete them. When Pro+ comes back, they turn on again, oldest first, up to the plan's limit. A webhook you turned off stays off.
+
+## Add a webhook
+
+Add a webhook in your Darvas settings:
+
+1. Open **Settings** and choose **Webhooks**.
+2. Select **Add webhook**.
+3. Give the webhook a **Name** of up to 100 characters, if you like. Without one, the list shows the host of its URL.
+4. Enter the **Endpoint URL**, a public `https://` address.
+5. Under **Events**, tick a whole group, such as **Alarms**, or single event types.
+6. Select **Add webhook**, then **Copy secret** to copy the signing secret, `whsec_...`.
+
+Darvas shows the signing secret only once, when you add the webhook. Store it with your server before you select **I saved my secret**. You need it to verify each delivery.
+
+Each webhook in the list shows **On**, **Off** or **Paused by plan**, the number of failed deliveries in a row, and these buttons:
+
+| Button | What it does |
+| --- | --- |
+| **Turn off**, **Turn on** | Stops or starts the webhook's deliveries. Turning a webhook on sets its failure count to 0. |
+| **Send test** | Sends a test event to a webhook that is on. |
+| **Deliveries** | Shows the webhook's last 25 deliveries. |
+| **Edit** | Changes the name, the URL or the events. The signing secret stays the same. |
+| **Delete** | Deletes the webhook and its delivery history. |
+
+A test event has `livemode: false`, the type of the webhook's first event and this object:
+
+```json
+{ "test": true, "message": "A test event from Darvas" }
+```
+
+Each webhook gets one test event a minute. **Deliveries** lists each delivery with its event type, its status (**Delivered**, **Pending** or **Failed**), the HTTP status your endpoint answered, or **No answer**, and the number of attempts. **Refresh** reads the list again.
+
+## Events
+
+A webhook receives only the types you choose. An event of your account, such as an alarm's fire, goes only to your own webhooks. ETF flow updates and data events go to every webhook that subscribes to them.
+
+| Group | Type | Sent when |
+| --- | --- | --- |
+| Alarms | `alarm.price.triggered` | A price alarm fires. When several of your price alarms fire together, each alarm sends its own event. |
+| Alarms | `alarm.condition.triggered` | An indicator condition alarm fires. |
+| Alarms | `alarm.custom_indicator.triggered` | An [alert on a custom indicator](/indicators/alerts) fires on a mark, an `alertcondition()` or an `alert()` call. |
+| Alarms | `alarm.footprint.triggered` | A footprint pattern alarm fires. |
+| Alarms | `alarm.paused` | Darvas pauses one of your alarms or scheduled tasks. |
+| Schedules | `schedule.completed` | A scheduled task answers. |
+| Schedules | `schedule.skipped` | A scheduled task skips a run, because another of your scheduled runs or a Darvas chat was still going. |
+| Economic calendar | `economic_calendar.reminder` | 30 minutes before a release that you set an alert on. |
+| Economic calendar | `economic_calendar.released` | The actual value of a release that you set an alert on comes out. |
+| Market and account | `etf_flows.updated` | Darvas stores a day of BTC or ETH ETF flows, or a new net flow for a day it stored before. |
+| Market and account | `venue.connection_ended` | A connection to OKX, Binance, Bybit, cTrader or a partner broker ends without you disconnecting it. |
+| Data | The 20 [data API events](/data-api/webhooks#events) | New earnings, financial statements, insider forms, filing items or macro releases arrive. |
+
+`venue.connection_ended` counts only connections that end after you add your first webhook with this type, so a new webhook gets no old ends.
+
+### Alarm objects
+
+Every alarm event has these fields in `data.object`:
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `trigger_id` | string | The alarm's id. |
+| `symbol` | string | The market, such as `BTC-USDT-SWAP`. |
+| `exchange` | string | The exchange, such as `okx`. |
+| `market_type` | string or null | `spot`, `swap` or another market type. |
+| `price` | string or null | The last price the check saw, or null when it had none. |
+| `fired_at` | string | When the alarm fired, as an ISO 8601 time. |
+
+Each alarm type adds its own fields:
+
+| Type | Added fields |
+| --- | --- |
+| `alarm.price.triggered` | `op` (`GTE`, `LTE`, `CROSS_UP` or `CROSS_DOWN`), `threshold` and `note`, the note you wrote or null |
+| `alarm.condition.triggered` | `timeframe`, the bar of the condition or null for a condition on several bars, and `summary` |
+| `alarm.custom_indicator.triggered` | `indicator_id`, `indicator_name`, `timeframe`, `signal` (`ANY`, `BUY` or `SELL`), `alert`, `message` and `bar_time`, the bar's time in Unix seconds or null |
+| `alarm.footprint.triggered` | `timeframe`, `patterns`, `side` (`ANY`, `BUY` or `SELL`), `summary` and `bar_time` |
+
+In `alarm.custom_indicator.triggered`, `alert` is the `alertcondition()` title that fired, `alert` for an `alert()` call, or null for a mark.
+
+### Other objects
+
+| Type | Fields |
+| --- | --- |
+| `alarm.paused` | `trigger_id`, `kind` (`price`, `condition`, `custom_indicator`, `footprint` or `schedule`), `reason`, `summary` (the notice you got, or null) and `paused_at` |
+| `schedule.completed` | `trigger_id`, `task`, `conversation_id`, `message_id`, `response`, `response_truncated` and `completed_at`. `response` holds at most 16,000 characters of the answer. |
+| `schedule.skipped` | `trigger_id`, `task`, `reason` (`busy`), `waited_minutes`, `next_run_at` and `skipped_at` |
+| `economic_calendar.reminder` | `event_id`, `title`, `currency`, `country`, `impact`, `scheduled_at`, `forecast`, `previous` and `lead_minutes` |
+| `economic_calendar.released` | The reminder's fields without `lead_minutes`, and `actual` |
+| `etf_flows.updated` | `asset` (`BTC` or `ETH`), `date` (`YYYY-MM-DD`), `net_flow_usd`, `funds` (each with `ticker` and `net_flow_usd`) and `updated_at` |
+| `venue.connection_ended` | `venue` (`okx`, `ctrader`, `binance`, `bybit` or `partner`), `name`, `broker` (the partner broker's slug, or null), `reason` and `ended_at` |
+
+The `reason` of `venue.connection_ended` is `expired` when the access ran out, and `ended` when it was revoked or the venue refused the key.
+
+The `reason` of `alarm.paused` is one of these:
+
+| Reason | Why the alarm paused |
+| --- | --- |
+| `custom_indicator_unavailable` | You no longer have the alarm's custom indicator. |
+| `custom_indicator_script_error` | The indicator's script failed on several closes in a row. |
+| `custom_indicator_script_too_slow` | The script ran past its time or memory limit on several closes in a row. |
+| `footprint_data_unavailable` | No footprint data arrived for several closes in a row. |
+| `plan_limit_reached` | Your plan has fewer alarms of this kind than you have on. |
+| `upgrade_required` | Your plan does not include alarms of this kind. |
+| `ai_provider_missing` | A scheduled task has no ChatGPT account to answer with. |
+| `ai_provider_expired` | The ChatGPT sign-in of a scheduled task expired. |
+| `ai_usage_limit` | The ChatGPT account of a scheduled task reached its usage limit. |
+
+## Deliveries
+
+Each delivery is a POST of this JSON envelope:
+
+```json
+{
+	"id": "evt_3f1c0b8e9a2d4c6b8e1f0a9b7c5d3e21",
+	"type": "alarm.price.triggered",
+	"api_version": "2026-11-26",
+	"livemode": true,
+	"created": 1795867200,
+	"data": {
+		"object": {
+			"trigger_id": "6f1c2f53-2b7e-4bb5-9d1e-2f6a2a3c4d5e",
+			"symbol": "BTC-USDT-SWAP",
+			"exchange": "okx",
+			"market_type": "swap",
+			"price": "97012.5",
+			"fired_at": "2026-11-28T14:00:00.000Z",
+			"op": "GTE",
+			"threshold": "97000",
+			"note": null
+		}
+	}
+}
+```
+
+`created` is the Unix time in seconds when Darvas stored the event. The request has these headers:
+
+- `Content-Type: application/json`
+- `User-Agent: Darvas-Webhook/1.0`
+- `Darvas-Signature: t=<unix seconds>,v1=<hex>`
+
+Answer with any 2xx status within ten seconds. Do slow work after you answer, such as from a queue. Darvas does not follow redirects.
+
+Each webhook receives its events one at a time, oldest first, so a slow endpoint delays only its own events. The same event can arrive twice, and a retry can arrive after a newer event. Use `id` to skip an event you have handled.
+
+## Verify the signature
+
+`v1` is the HMAC-SHA256 of `<t>.<raw body>` under your signing secret, in hex. Before you trust a delivery:
+
+1. Compute the HMAC over the raw body as you received it. A body that you parsed and serialized again does not match.
+2. Compare it with `v1` in constant time.
+3. Refuse a `t` that is more than five minutes away from your clock.
+
+```ts
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+export function verifyDarvasSignature(secret: string, header: string, body: string): boolean {
+	const fields = new Map<string, string>();
+	for (const part of header.split(",")) {
+		const at = part.indexOf("=");
+		if (at > 0) fields.set(part.slice(0, at), part.slice(at + 1));
+	}
+	const t = fields.get("t") ?? "";
+	if (!/^\d+$/.test(t) || Math.abs(Date.now() / 1000 - Number(t)) > 300) return false;
+	const expected = createHmac("sha256", secret).update(`${t}.${body}`).digest();
+	const given = Buffer.from(fields.get("v1") ?? "", "hex");
+	return given.length === expected.length && timingSafeEqual(given, expected);
+}
+
+export async function POST(request: Request): Promise<Response> {
+	const body = await request.text();
+	const header = request.headers.get("darvas-signature") ?? "";
+	if (!verifyDarvasSignature(process.env.DARVAS_WEBHOOK_SECRET ?? "", header, body)) {
+		return new Response(null, { status: 401 });
+	}
+	const event = JSON.parse(body) as { id: string; type: string; data: { object: unknown } };
+	// Keep event.id to skip a repeat, and do slow work after this answer.
+	return new Response(null, { status: 204 });
+}
+```
+
+In Python, pass the raw body as bytes, such as `request.get_data()` in Flask:
+
+```python
+import hashlib
+import hmac
+import time
+
+
+def verify_darvas_signature(secret: str, header: str, body: bytes) -> bool:
+    fields = dict(part.split("=", 1) for part in header.split(",") if "=" in part)
+    t = fields.get("t", "")
+    if not (t.isascii() and t.isdigit()) or abs(time.time() - int(t)) > 300:
+        return False
+    expected = hmac.new(secret.encode(), t.encode() + b"." + body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected.encode(), fields.get("v1", "").encode())
+```
+
+## Retries and failures
+
+- A delivery fails when your endpoint does not answer with a 2xx within ten seconds, or cannot be reached.
+- Darvas tries a failed delivery again about a minute later, and once more about ten minutes after that. After the third failed attempt, the delivery is marked dead.
+- After 50 failed attempts in a row, Darvas turns the webhook off. Fix your endpoint, then turn the webhook on again in settings. Turning it on sets the failure count to 0.
+- Darvas keeps events and their deliveries for 30 days.
+
+## Endpoint rules
+
+Darvas refuses a URL that breaks one of these rules when you add or change a webhook:
+
+- The URL uses `https`.
+- The URL has no user name or password.
+- The host is a public name with a dot, not a name that ends in `.local`, `.internal`, `.localhost`, `.test` or `.invalid`.
+- An IP address host is public. Private, loopback, link-local, shared, documentation, multicast and reserved ranges are refused, for IPv4 and IPv6.
+- The URL has at most 2,000 characters, and the name and the URL have no control characters.
+
+At each delivery, Darvas resolves the host again. If any address of the host is not public, the delivery fails, so a name that later points to a private address receives nothing.

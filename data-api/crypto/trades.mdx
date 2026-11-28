@@ -1,0 +1,25 @@
+---
+title: "Crypto Trades"
+sidebarTitle: "Trades"
+description: "Every trade of an OKX or Hyperliquid instrument, from the 90 days Darvas keeps."
+openapi: "data-api/openapi.yaml GET /crypto/trades"
+hideApiMarker: true
+---
+
+## Overview
+
+Darvas stores the public trades of the OKX and Hyperliquid instruments it lists and keeps 90 days of them. OKX swaps go back the full 90 days; OKX spot and Hyperliquid perpetuals start on 23 November 2026; Hyperliquid spot covers the 100 busiest pairs since September 2026. A request reads one window of at most 24 hours, newest trade first; without `start_time` and `end_time` it reads the last hour. `side` is the taker's side. `notional_usd` comes from OKX's contract value for an OKX swap, is price times size for a market quoted in USD, USDT or USDC, and is null for any other quote.
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+trades = requests.get(
+    "https://darvas.app/api/data/v1/crypto/trades",
+    headers=headers,
+    params={"ticker": "BTC-USDT-SWAP", "start_time": "2026-11-25T14:00:00Z", "end_time": "2026-11-25T14:05:00Z", "limit": 5000},
+).json()
+large = [t for t in trades["trades"] if t["notional_usd"] >= 100_000]
+print(len(trades["trades"]), len(large))
+```

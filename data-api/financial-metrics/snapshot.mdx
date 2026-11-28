@@ -1,0 +1,22 @@
+---
+title: "Financial Metrics Snapshot"
+sidebarTitle: "Snapshot"
+description: "The ratios of a company's newest trailing twelve months."
+openapi: "data-api/openapi.yaml GET /financial-metrics/snapshot"
+hideApiMarker: true
+---
+
+## Overview
+
+The [financial metrics](/data-api/financial-metrics/metrics) of the newest trailing twelve months Darvas holds for the company, with its `report_period`. `market_cap` and the valuation ratios are null until Darvas stores stock prices.
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+snapshot = requests.get(
+    "https://darvas.app/api/data/v1/financial-metrics/snapshot", headers=headers, params={"ticker": "NVDA"}
+).json()["snapshot"]
+print(snapshot["report_period"], snapshot["net_margin"], snapshot["debt_to_equity"])
+```

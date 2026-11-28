@@ -1,0 +1,44 @@
+---
+title: "Index Fund Holdings"
+sidebarTitle: "Holdings"
+description: "What every registered fund and ETF holds, with weights, from SEC Form N-PORT since 2019."
+openapi: "data-api/openapi.yaml GET /index-funds"
+hideApiMarker: true
+---
+
+## Overview
+
+Registered funds and ETFs report their full portfolio to SEC on Form N-PORT every month; the report for the last month of each quarter is made public. Send `ticker` for one fund's holdings, or `holding` for the funds that hold a security.
+
+| Coverage | Details |
+| --- | --- |
+| Funds | Every registered fund that files N-PORT: about 14,000 reports a quarter, all share class tickers |
+| History | Since 2019 Q4, from SEC's Form N-PORT Data Sets, and each later filing's XML |
+| Updated | Within about a minute of acceptance |
+| Page size | 100; `limit` counts across pages, default 50; `offset` skips rows |
+
+- `ticker` takes any share class: VOO, VFIAX and VFFSX all name the Vanguard 500 Index Fund. The answer is the fund's newest report, or with `as_of` the newest on or before that date. An amended report (NPORT-P/A) replaces the first one.
+- `weight` is the holding as a percent of net assets, as the fund reports it. Leveraged and short positions can take the total above or below 100.
+- A holding's `ticker` is the US ticker of its CUSIP; securities without a US listing have none, and keep their `isin`.
+- `holding` returns the funds whose newest report, filed within the last 15 months, holds the security, largest weight first. A fund's `ticker` there is its shortest share class ticker, which is the ETF's where there is one.
+
+Unit investment trusts such as SPY and DIA do not file N-PORT, so their holdings are not here.
+
+## Examples
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+url = "https://darvas.app/api/data/v1/index-funds"
+
+voo = requests.get(url, headers=headers, params={"ticker": "VOO", "limit": 10}).json()
+print(voo["fund"]["as_of"], voo["fund"]["total_holdings"])
+for holding in voo["holdings"]:
+    print(holding["ticker"], round(holding["weight"], 2))
+
+holders = requests.get(url, headers=headers, params={"holding": "NVDA", "limit": 20}).json()
+for fund in holders["funds"]:
+    print(fund["ticker"], fund["name"], round(fund["weight"], 2))
+```

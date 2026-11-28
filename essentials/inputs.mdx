@@ -1,0 +1,98 @@
+---
+title: "Inputs"
+description: "Darvas JavaScript: input.int, input.float, input.bool, input.string, input.color and input.source declare named parameters that return their default values."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## Overview
+
+`input.*` functions declare named parameters. Call them at the **top level** of your script, never inside `onBar`.
+
+```js
+const length = input.int("Length", 14);
+const src    = input.source("Source", "close");
+const useEma = input.bool("Use EMA", false);
+```
+
+Darvas has no form that edits the inputs of a JavaScript indicator, so every input returns its default value. Each call records the input's name, kind and default in the run output.
+
+## Function reference
+
+<ParamField path="input.int(name, default, opts?)" type="number">
+  Returns `default` rounded to an integer. The `opts` argument is ignored, so `min`, `max`, `step` and `group` do nothing.
+  ```js
+  const len = input.int("Period", 20);
+  ```
+</ParamField>
+
+<ParamField path="input.float(name, default, opts?)" type="number">
+  Returns `default`. The `opts` argument is ignored.
+  ```js
+  const mult = input.float("Multiplier", 2.0);
+  ```
+</ParamField>
+
+<ParamField path="input.bool(name, default, opts?)" type="boolean">
+  Returns `default`, which must be a boolean. The `opts` argument is ignored.
+  ```js
+  const showLabels = input.bool("Show labels", true);
+  ```
+</ParamField>
+
+<ParamField path="input.string(name, default, opts?)" type="string">
+  Returns `default`, which must be a string. `opts.options` records a list of allowed values with the input.
+  ```js
+  const mode = input.string("Mode", "fast", { options: ["fast", "slow", "adaptive"] });
+  const note = input.string("Label text", "Signal");
+  ```
+</ParamField>
+
+<ParamField path="input.color(name, default, opts?)" type="string">
+  Returns the color string `default`. The `opts` argument is ignored.
+  ```js
+  const bullColor = input.color("Bull color", "#22c55eFF");
+  const bearColor = input.color("Bear color", "#ef4444FF");
+  ```
+</ParamField>
+
+<ParamField path="input.source(name, default?)" type="(offset?) => number | undefined">
+  Returns a source function that you pass to `ta.*`. `default` is `"close"` when you leave it out. The accepted names are `"open"`, `"high"`, `"low"`, `"close"`, `"hl2"`, `"hlc3"` and `"ohlc4"`. Any other name, such as `"volume"`, reads the close.
+  ```js
+  const src = input.source("Source", "close");
+  // src is a function: src(0) === ctx.close(0)
+  ta.ema(src, 20); // pass src itself, do not call it
+  ```
+</ParamField>
+
+## The source function pattern
+
+`input.source` returns a function with the same shape as `ctx.close` and `ctx.open`. Pass it to `ta.*` without calling it:
+
+```js
+const src = input.source("Source", "close");
+
+onBar(() => {
+  const val = ta.ema(src, 14);  // correct: src is a source
+  // ta.ema(src(), 14) is wrong: src() is a number, and ta.ema returns NaN
+});
+```
+
+To read volume as a source, pass `ctx.volume`.
+
+<Warning>
+  An `input.*` call inside `onBar` stops the run with the error code `INVALID_REQUEST` and the message "input.* must be declared at top level (not inside onBar)". Declare every input at the top level.
+</Warning>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Script lifecycle" href="/essentials/script-lifecycle">
+    Why top-level code runs once and onBar runs per bar.
+  </Card>
+  <Card title="Bar context" href="/essentials/bar-context">
+    Built-in OHLCV accessors that share the source function shape.
+  </Card>
+</CardGroup>

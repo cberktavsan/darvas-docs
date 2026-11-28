@@ -1,0 +1,117 @@
+---
+title: "Volatility"
+description: "Darvas JavaScript: ta.atr, ta.stdev, ta.variance, ta.dev, ta.bb and ta.keltner measure volatility, and ta.bb and ta.keltner return basis, upper and lower."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## `ta.atr(high, low, close, length)`: Average True Range
+
+The Wilder-smoothed (RMA) average of the true range, in price units. It computes over the newest 4 times `length` bars, at most 2,000.
+
+```js
+onBar(() => {
+  const atr = ta.atr(ctx.high, ctx.low, ctx.close, 14);
+  plot("ATR14", atr);
+});
+```
+
+## `ta.stdev(source, length)`: standard deviation
+
+The population standard deviation of the last `length` values. A `NaN` in the window gives `NaN`.
+
+```js
+onBar(() => {
+  plot("StDev20", ta.stdev(ctx.close, 20));
+});
+```
+
+## `ta.variance(source, length)`: variance
+
+The population variance, `stdev^2`.
+
+```js
+onBar(() => {
+  plot("Variance", ta.variance(ctx.close, 20));
+});
+```
+
+## `ta.dev(source, length)`: mean absolute deviation
+
+The average absolute distance from the mean of the last `length` values. Less sensitive to outliers than the standard deviation.
+
+```js
+onBar(() => {
+  plot("MAD", ta.dev(ctx.close, 20));
+});
+```
+
+## `ta.bb(source, length, mult)`: Bollinger Bands
+
+Returns `{ basis, upper, lower }`. `basis` is the SMA of `source`, and `upper` and `lower` are `basis ± mult * stdev`. There is no `middle` field. All three are `NaN` until `length` bars exist.
+
+```js
+// overlay = true
+const upper = plot("BB Upper", null, { color: "#3b82f6FF" });
+const lower = plot("BB Lower", null, { color: "#3b82f6FF" });
+plot("BB Basis", null, { color: "#3b82f680" });
+fill(upper, lower, { color: "#3b82f615" });
+
+onBar(() => {
+  const bb = ta.bb(ctx.close, 20, 2);
+  plot("BB Upper", bb.upper);
+  plot("BB Basis", bb.basis);
+  plot("BB Lower", bb.lower);
+});
+```
+
+## `ta.keltner(source, high, low, close, length, mult)`: Keltner Channel
+
+Returns `{ basis, upper, lower }`. `basis` is the EMA of `source`, and the bands are `basis ± mult * ATR`, with an ATR of the same `length`. There is no `middle` field.
+
+```js
+// overlay = true
+plot("KC Upper", null, { color: "#f59e0bFF" });
+plot("KC Lower", null, { color: "#f59e0bFF" });
+plot("KC Basis", null, { color: "#f59e0b80" });
+
+onBar(() => {
+  const kc = ta.keltner(ctx.close, ctx.high, ctx.low, ctx.close, 20, 1.5);
+  plot("KC Upper", kc.upper);
+  plot("KC Basis", kc.basis);
+  plot("KC Lower", kc.lower);
+});
+```
+
+## Squeeze setup
+
+Bollinger Bands inside the Keltner Channel mark a low-volatility squeeze:
+
+```js
+// overlay = true
+onBar(() => {
+  const bb = ta.bb(ctx.close, 20, 2);
+  const kc = ta.keltner(ctx.close, ctx.high, ctx.low, ctx.close, 20, 1.5);
+  if (na(bb.upper) || na(kc.upper)) return;
+
+  // Squeeze: BB inside KC
+  const squeeze = bb.upper < kc.upper && bb.lower > kc.lower;
+  if (squeeze) bgcolor("#a78bfa15");
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Bollinger Bands example" href="/examples/bollinger-bands">
+    Full working Bollinger Bands indicator with band shading.
+  </Card>
+  <Card title="Oscillators" href="/ta/oscillators">
+    Momentum and oscillator functions.
+  </Card>
+  <Card title="Aggregators" href="/ta/aggregators">
+    ta.highest and ta.lowest for range-based calculations.
+  </Card>
+</CardGroup>

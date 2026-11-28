@@ -1,0 +1,214 @@
+---
+title: "Troubleshooting"
+description: "Darvas JavaScript: common error messages and silent failures, with the cause of each and how to fix it."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+<AccordionGroup>
+
+<Accordion title="Line limit exceeded">
+**Message:** a `TypeError` with the message `Line limit exceeded (500)`. Box, Label, Marker and LineFill have the same message with their own name.
+
+**Cause:** The script tried to create a 501st `Line`. With a new key on every bar, such as `` Line(`ph_${ctx.i()}`, ...) ``, a run of 1,000 bars reaches the limit. The script stops at that call.
+
+**Fix:** Create lines only on confirmed events, such as pivots or signals. Delete old lines to free their slots, or update one line in place with `.set()`:
+
+```js
+// Bad: a new line on every bar
+onBar(() => {
+  Line(`line_${ctx.i()}`, { x1: ctx.i(), y1: ctx.low(), x2: ctx.i(), y2: ctx.high() });
+});
+
+// Good: one line, updated in place
+const trendLine = Line("trend", { x1: 0, y1: 0, x2: 1, y2: 1, color: "#22c55eFF" });
+onBar(() => {
+  trendLine.set({ x2: ctx.i(), y2: ctx.close() });
+});
+```
+</Accordion>
+
+<Accordion title="Series limit exceeded">
+**Message:** a `TypeError` with the message `Series limit exceeded (64)`.
+
+**Cause:** The script set more than 64 distinct Series. The count includes the hidden Series of `ta.macd`, `ta.cci`, `ta.dmi`, `ta.mfi`, `ta.accdist`, `ta.barssince` and `ta.cum`.
+
+**Fix:** Count your Series and reuse them where possible. Each unique `ta.barssince(key, ...)` or `ta.cum(key, ...)` key takes one slot. Call a stateful `ta.*` function once per bar and reuse its result.
+</Accordion>
+
+<Accordion title="Entity option errors">
+**Message:** a `TypeError` such as `Line create opts: invalid type: null, expected f64` or ``Label create opts: unknown field `textColor` ``.
+
+**Cause:** The first message means a coordinate was `NaN`, `Infinity`, `null` or `undefined`. `NaN` becomes `null` in the options JSON. The second means the option name does not exist for that entity.
+
+**Fix:** Check every coordinate with `na()` before you create the entity. Use only the options listed on the entity's page. Label has no `textColor`, and Line has no `extend`.
+</Accordion>
+
+<Accordion title="LineFill does not appear">
+**Symptom:** No error, but the fill is missing from the chart.
+
+**Cause:** At the end of the run, the runtime drops a `LineFill` without a message when one of its lines no longer exists, or when the two lines have different `forceOverlay` values.
+
+**Fix:** Keep both lines alive, and give them the same `forceOverlay` value:
+
+```js
+const top = Line("top", { x1: 0, y1: 105, x2: 50, y2: 105, forceOverlay: true });
+const bot = Line("bot", { x1: 0, y1: 95,  x2: 50, y2: 95,  forceOverlay: true }); // must match
+const fill = LineFill("fill", top, bot, { color: "#22c55e30" });
+```
+</Accordion>
+
+<Accordion title="A ta.* value is NaN on every bar">
+**Symptom:** A plot of a `ta.*` result stays empty.
+
+**Common causes:**
+1. A number passed as the source: `ta.ema(ctx.close(), 20)`. Pass `ctx.close`, without parentheses.
+2. A `length` larger than the number of bars in the run, at most 1,000 on a chart.
+3. A wrong signature, such as `ta.cci(ctx.hlc3, 20)` instead of `ta.cci(ctx.hlc3, ctx.high, ctx.low, ctx.close, 20)`.
+4. A field that does not exist, such as `bb.middle` instead of `bb.basis`, or `dmi.plus` instead of `dmi.plusDI`. These are `undefined`, which plots as an na value.
+
+**Fix:**
+```js
+// The value of the current bar:
+const closeValue = ctx.close();
+
+// A source for ta.*:
+const ema = ta.ema(ctx.close, 20); // no parentheses on ctx.close
+```
+</Accordion>
+
+<Accordion title="A crossover never fires">
+**Symptom:** `ta.crossover`, `ta.crossunder` or `ta.cross` returns `false` on every bar.
+
+**Cause:** One argument is a number, such as `70`, or a function that ignores its offset, such as `() => rsi`. Neither has a previous value, so nothing can cross.
+
+**Fix:** Write a constant level as `() => 70`, and store a computed value in a `Series`:
+
+```js
+const rsiSeries = Series("rsi");
+onBar(() => {
+  rsiSeries.set(ta.rsi(ctx.close, 14));
+  if (ta.crossunder(rsiSeries, () => 70)) bgcolor("#ef444420");
+});
+```
+</Accordion>
+
+<Accordion title="bgcolor or barcolor stops the script">
+**Symptom:** The run stops with `RUNTIME_ERROR` at a `bgcolor` or `barcolor` call.
+
+**Cause:** The color was `null` or `undefined`, for example from `bgcolor(cond ? c : null)`. Both functions need a string.
+
+**Fix:** Skip the call on bars without a color: `if (cond) bgcolor(c);`
+</Accordion>
+
+<Accordion title="A plot shows no line or a partial line">
+**Symptom:** A plot appears blank, or only part of it shows.
+
+**Cause:** The value written to `plot()` is `NaN`, for example during the warmup of an indicator or from arithmetic on an `undefined` value such as `ctx.close(20)` on an early bar.
+
+**Debug steps:**
+1. Plot each intermediate value as its own plot to see where it turns into `NaN`.
+2. On the newest bar, show a value in a Label with `str.tostring(value, "#.##")`.
+3. Wrap the value with `nz()`, or add an `if (na(value)) return` guard.
+
+```js
+plot("RSI", null, { color: "#a78bfaFF" });
+onBar(() => {
+  const rsi = ta.rsi(ctx.close, 14); // NaN for the first 14 bars
+  plot("RSI", rsi);
+});
+```
+</Accordion>
+
+<Accordion title="An entity stops updating">
+**Symptom:** A `Line` or `Box` stops updating partway through the chart.
+
+**Cause:** You created the entity again under the same key but kept using the handle from the first call. The old handle's `.set()` calls do nothing.
+
+**Fix:** Always keep the return value of the latest factory call:
+
+```js
+// Wrong
+const line = Line("sr", { x1: 0, y1: 100, x2: 1, y2: 100 });
+onBar(() => {
+  Line("sr", { x1: 0, y1: 100, x2: ctx.i(), y2: 100 }); // line is now stale
+  line.set({ color: "#ef4444FF" });                    // does nothing
+});
+
+// Correct
+let line2 = Line("sr", { x1: 0, y1: 100, x2: 1, y2: 100 });
+onBar(() => {
+  line2 = Line("sr", { x1: 0, y1: 100, x2: ctx.i(), y2: 100 }); // keep the new handle
+  line2.set({ color: "#ef4444FF" });                           // works
+});
+```
+</Accordion>
+
+<Accordion title="AST_REJECTED">
+**Message:** for example ``identifier `eval` is not available in the indicator runtime``, `` `while(true)` without a `break` is not allowed `` or `syntax error: ...`.
+
+**Cause:** The parser refused the script before it ran. A syntax error has the same code.
+
+**Fix:** Remove the construct that the message names. See [refused constructs](/reference/api-limits#refused-constructs).
+</Accordion>
+
+<Accordion title="TIMEOUT in top-level code">
+**Message:** `top-level code exceeded its time budget`
+
+**Cause:** Code outside `onBar` ran for more than 1.5 s, usually a large loop at the script root.
+
+**Fix:** Keep the top level to declarations: `input.*`, `plot()`, `hline()`, `fill()` and `Series()`. Move computation inside `onBar`.
+</Accordion>
+
+<Accordion title="TIMEOUT in one onBar call">
+**Message:** `onBar exceeded its time budget`
+
+**Cause:** One `onBar` call took more than 50 ms, usually because of a nested loop over the bar history.
+
+**Fix:** Replace manual loops with `ta.*` functions. See [Performance tips](/reference/performance).
+</Accordion>
+
+<Accordion title="TIMEOUT for the whole run">
+**Message:** `exceeded total wall-clock budget after bar N`
+
+**Cause:** All `onBar` calls together took more than 10 s.
+
+**Fix:** Reduce the work per bar. On a run of 1,000 bars, that is about 10 ms per bar on average.
+</Accordion>
+
+</AccordionGroup>
+
+## General debugging workflow
+
+The Darvas editor does not show `console.log` output for a JavaScript indicator, so debug through what the chart draws.
+
+<Steps>
+  <Step title="Plot intermediate values">
+    Give each value you doubt its own plot with `style: "linebr"`. A break in the line shows where the value is `NaN` or `undefined`.
+  </Step>
+  <Step title="Show a value on the last bar">
+    Inside `if (ctx.isLast())`, create a `Label` whose text is `str.tostring(value, "#.##")`.
+  </Step>
+  <Step title="Check for NaN with na()">
+    If a plot is blank, color the background where the value is missing: `if (na(myValue)) bgcolor("#ef444430")`.
+  </Step>
+  <Step title="Isolate the indicator">
+    Remove all but one plot and one calculation. Add them back one at a time until the problem returns.
+  </Step>
+</Steps>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Gotchas" href="/reference/gotchas">
+    The traps behind these errors.
+  </Card>
+  <Card title="API limits" href="/reference/api-limits">
+    All budget numbers.
+  </Card>
+  <Card title="Performance tips" href="/reference/performance">
+    How to avoid timeout errors.
+  </Card>
+</CardGroup>

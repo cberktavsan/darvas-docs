@@ -1,0 +1,30 @@
+---
+title: "Splits"
+description: "Every split of a US stock: the date and how many shares one holding became."
+openapi: "data-api/openapi.yaml GET /splits"
+hideApiMarker: true
+---
+
+## Overview
+
+Each split of a US stock since its first session, oldest first. From `date` on, a holder has `numerator` shares for every `denominator` held: Apple's split of 31 August 2020 is 4 for 1. A reverse split has the smaller numerator, such as 1 for 10.
+
+[Prices](/data-api/prices/historical) are already adjusted for every split, and [dividends](/data-api/prices/dividends) carry both the amount paid and the amount per today's share. A new split appears after its first session closes; a stock that has never split answers an empty list.
+
+## Example
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+splits = requests.get(
+    "https://darvas.app/api/data/v1/splits",
+    headers=headers,
+    params={"ticker": "AAPL"},
+).json()["splits"]
+shares = 1.0
+for split in splits:
+    shares *= split["numerator"] / split["denominator"]
+print(shares)  # what one share of the first session became
+```

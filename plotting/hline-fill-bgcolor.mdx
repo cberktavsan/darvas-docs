@@ -1,0 +1,143 @@
+---
+title: "hline, fill, bgcolor, barcolor"
+description: "Darvas JavaScript: hline draws a fixed horizontal line, fill shades between two plots, and bgcolor and barcolor color the background and candle of the current bar."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## Overview
+
+These four functions add fixed and per-bar layers to `plot()`:
+
+```ts
+hline(value, opts?)           // fixed horizontal line, returns { value }
+fill(plotA, plotB, opts?)     // shade between two plot handles
+bgcolor(color)                // background of the current bar, inside onBar
+barcolor(color)               // candle color of the current bar, inside onBar
+```
+
+## `hline`
+
+Draws a horizontal line across the chart at a fixed value. Call it at the **top level**. Every call adds a line, so a call inside `onBar` adds one per bar and passes the limit of 64.
+
+```js
+hline(70, { color: "#ef4444FF" });
+hline(50, { color: "#6b7280FF" });
+hline(30, { color: "#22c55eFF", linewidth: 2 });
+```
+
+**Options:**
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `string` | `"#737373"` | Hex color |
+| `linewidth` | `number` | `1` | Width in pixels |
+
+The line is always solid. `style` and `title` are ignored.
+
+`hline` returns `{ value }`. The handle has no `id`, so `fill()` cannot use it. To shade between two levels, plot each level and fill between the plots.
+
+Budget: at most **64 hlines** per indicator.
+
+## `fill`
+
+Shades the area between two plots. Pass two handles that `plot()` returned. Call it at the **top level**.
+
+```js
+const upper = plot("Upper BB", null, { color: "#22c55eFF" });
+const lower = plot("Lower BB", null, { color: "#22c55eFF" });
+fill(upper, lower, { color: "#22c55e20" });
+```
+
+**Options:**
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `string` | `"#3b82f640"` | Fill color. Use a low alpha, for example `#22c55e20` |
+
+The fill stops at a bar where either plot is na and starts again after it. A plot hidden with `display: "display.none"` can still carry a fill.
+
+Budget: at most **64 fills** per indicator.
+
+## `bgcolor`
+
+Colors the background of the current bar. Call it **inside `onBar`**. A top-level call does nothing.
+
+`color` must be a string. `null` or `undefined` throws a `TypeError` and stops the script. To leave a bar uncolored, skip the call.
+
+```js
+onBar(() => {
+  const rsi = ta.rsi(ctx.close, 14);
+  if (na(rsi)) return;
+
+  if (rsi > 70) {
+    bgcolor("#ef444420"); // faint red for overbought
+  } else if (rsi < 30) {
+    bgcolor("#22c55e20"); // faint green for oversold
+  }
+});
+```
+
+The background shows in the indicator's own pane, or on the price chart for an overlay indicator.
+
+## `barcolor`
+
+Colors the candle of the current bar on the price chart, also when the indicator has its own pane. Call it **inside `onBar`**. The same rules apply as for `bgcolor`: pass a string, and skip the call for a bar that keeps its normal color.
+
+```js
+// overlay = true
+onBar(() => {
+  const isEngulf = ctx.close() > ctx.open(1) && ctx.open() < ctx.close(1);
+  if (isEngulf) barcolor("#22c55eFF");
+});
+```
+
+Budget: `bgcolor` and `barcolor` together write at most **20,000 points**, one per bar and call.
+
+## Per-bar vs fixed
+
+| Function | When to call | Effect |
+| --- | --- | --- |
+| `hline` | Top level | One horizontal line across the chart |
+| `fill` | Top level | A band between two plots |
+| `bgcolor` | Inside `onBar` | Background color of the current bar |
+| `barcolor` | Inside `onBar` | Candle color of the current bar |
+
+<Note>
+  `bgcolor` and `barcolor` only change the bars where you call them. Every other bar keeps the normal chart color.
+</Note>
+
+## Complete RSI indicator example
+
+```js
+const length = input.int("Length", 14);
+
+plot("RSI", null, { color: "#a78bfaFF" });
+
+hline(70, { color: "#ef4444FF" });
+hline(50, { color: "#6b728080" });
+hline(30, { color: "#22c55eFF" });
+
+onBar(() => {
+  const rsi = ta.rsi(ctx.close, length);
+  plot("RSI", rsi);
+  if (rsi > 70) bgcolor("#ef444415");
+  if (rsi < 30) bgcolor("#22c55e15");
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Plot basics" href="/plotting/plot-basics">
+    plot(), the main per-bar output.
+  </Card>
+  <Card title="color.*" href="/essentials/color">
+    Color format and named constants.
+  </Card>
+  <Card title="API limits" href="/reference/api-limits">
+    Budget numbers for every output.
+  </Card>
+</CardGroup>

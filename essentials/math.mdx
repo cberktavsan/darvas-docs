@@ -1,0 +1,118 @@
+---
+title: "math.*"
+description: "Darvas JavaScript: the math namespace holds arithmetic, rounding, trigonometric and random functions, and the constants math.pi, math.e, math.phi and math.rphi."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## Overview
+
+The `math` namespace wraps the JavaScript `Math` object under Pine Script names. It is a global, `math.*`, and the JavaScript `Math` object stays available too.
+
+## Arithmetic
+
+| Function | Returns | Notes |
+| --- | --- | --- |
+| `math.abs(x)` | `number` | `math.abs(-5)` returns `5` |
+| `math.sign(x)` | `number` | `-1`, `0` or `1` |
+| `math.sqrt(x)` | `number` | `math.sqrt(9)` returns `3` |
+| `math.pow(x, y)` | `number` | `math.pow(2, 10)` returns `1024` |
+| `math.exp(x)` | `number` | `e` raised to `x` |
+| `math.log(x)` | `number` | Natural logarithm |
+| `math.log10(x)` | `number` | Base-10 logarithm |
+
+```js
+onBar(() => {
+  const logReturn = math.log(ctx.close() / ctx.close(1)); // NaN on the oldest bar
+  plot("Log Return", logReturn);
+});
+```
+
+## Min, max, average and sum
+
+| Function | Returns | Notes |
+| --- | --- | --- |
+| `math.min(...values)` | `number` | `math.min(3, 1, 2)` returns `1`. `NaN` if any value is `NaN` |
+| `math.max(...values)` | `number` | `math.max(3, 1, 2)` returns `3`. `NaN` if any value is `NaN` |
+| `math.avg(...values)` | `number` | Mean of the arguments. `NaN` if any argument is na, or with no arguments |
+| `math.sum(...values)` | `number` | Sum of the arguments. `NaN` if any argument is na |
+
+```js
+onBar(() => {
+  // Clamp RSI between 10 and 90
+  const rsi = ta.rsi(ctx.close, 14);
+  const clamped = math.max(10, math.min(90, nz(rsi, 50)));
+  plot("Clamped RSI", clamped);
+});
+```
+
+## Rounding
+
+| Function | Returns | Notes |
+| --- | --- | --- |
+| `math.round(x)` | `number` | Rounds to the nearest integer. It takes one argument, so `math.round(x, 2)` equals `math.round(x)` |
+| `math.round_to_mintick(x)` | `number` | Darvas passes no tick size to the script, so it equals `math.round(x)` |
+| `math.floor(x)` | `number` | Rounds down to an integer |
+| `math.ceil(x)` | `number` | Rounds up to an integer |
+
+To round to a number of decimals, scale first. For text, use `str.tostring` with a format.
+
+```js
+const price = 42567.126;
+const rounded = math.round(price * 100) / 100;  // 42567.13
+const floored = math.floor(price);              // 42567
+const text    = str.tostring(price, "#.##");    // "42567.13"
+```
+
+## Trigonometric
+
+| Function | Notes |
+| --- | --- |
+| `math.sin(x)`, `math.cos(x)`, `math.tan(x)` | Input in radians |
+| `math.asin(x)`, `math.acos(x)`, `math.atan(x)` | Output in radians |
+| `math.todegrees(rad)` | Radians to degrees |
+| `math.toradians(deg)` | Degrees to radians |
+
+```js
+// Sine wave in a separate pane
+plot("Sine wave", null);
+
+onBar(() => {
+  const t = ctx.i() / 20;
+  plot("Sine wave", math.sin(2 * math.pi * t) * 100);
+});
+```
+
+## Constants
+
+| Constant | Value |
+| --- | --- |
+| `math.pi` | `3.141592653589793` |
+| `math.e` | `2.718281828459045` |
+| `math.phi` | `1.618033988749895`, the golden ratio |
+| `math.rphi` | `0.618033988749895`, the reciprocal of the golden ratio |
+
+The names are lowercase. `math.PI` is `undefined`.
+
+## Random
+
+| Function | Returns |
+| --- | --- |
+| `math.random()` | `number` in `[0, 1)`, different on every call |
+
+<Note>
+  `math.random()` returns new numbers on every run, so the chart changes each time the indicator runs again. Avoid it for anything that should stay stable.
+</Note>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="str.*" href="/essentials/str">
+    String functions, including str.tostring for rounded text.
+  </Card>
+  <Card title="NaN handling" href="/essentials/nan-handling">
+    math.* functions pass NaN through. Guard inputs with nz().
+  </Card>
+</CardGroup>

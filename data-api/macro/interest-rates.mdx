@@ -1,0 +1,35 @@
+---
+title: "Central Bank Interest Rates"
+sidebarTitle: "History"
+description: "The daily policy rate of 31 central banks from the Bank for International Settlements, the Federal Reserve since 1954."
+openapi: "data-api/openapi.yaml GET /macro/interest-rates"
+hideApiMarker: true
+---
+
+## Overview
+
+One row per bank and calendar day, with the rate in effect that day. Pass `bank`; the symbols are listed by [Central Banks](/data-api/macro/interest-rate-banks).
+
+| Coverage | Details |
+| --- | --- |
+| Banks | 31, from the Federal Reserve and the ECB to the Central Bank of the Republic of Turkey and Bank Indonesia |
+| History | The Federal Reserve since 1954; other banks from the start of their BIS series |
+| Source | BIS central bank policy rates, daily |
+| Checked | Hourly |
+
+For the Federal Reserve the rate is the midpoint of the federal funds target range since 19 December 1985, and the effective federal funds rate before. `first_published_rate` is the first rate Darvas recorded for the day.
+
+## Example
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+base = "https://darvas.app/api/data/v1/macro"
+
+rates = requests.get(f"{base}/interest-rates", headers=headers, params={"bank": "FED", "start_date": "2024-01-01"}).json()
+changes = [r for prev, r in zip(rates["interest_rates"], rates["interest_rates"][1:]) if r["rate"] != prev["rate"]]
+for change in changes:
+    print(change["date"], change["rate"])
+```

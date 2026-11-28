@@ -1,0 +1,68 @@
+---
+title: "Alerts on indicator marks"
+description: "Get a notification when a saved Pine Script indicator draws a new buy or sell mark, or when its alertcondition() or alert() fires on a closed candle."
+---
+
+An indicator alert checks a saved Pine Script indicator at every candle close and notifies you when it draws a new mark or raises an alert.
+
+## Requirements
+
+- The indicator is saved. A draft is deleted when you close Darvas, and its alert would stop with it.
+- The chart timeframe is 15 minutes or longer, on a market whose candles Darvas stores.
+- Your plan has room for one more. Darvas Free has 1 indicator alert, Darvas Pro 5 and Darvas Pro+ 20, and each counts toward the plan's conditional alerts.
+
+## Set an alert
+
+1. Open the saved indicator in the editor, on the market and timeframe to watch.
+2. In the **Darvas** tab, choose **Set alert**. The assistant also shows this card when your request asks for alerts.
+3. Under **What sets off the alert**, choose one:
+   - **Buy and sell marks**, then **BUY marks**, **SELL marks** or **All marks**.
+   - One of the script's `alertcondition()` titles.
+   - **Any alert() function call**.
+4. Choose **Set alert**.
+
+Manage the alert in the **Alerts** panel.
+
+## What counts as a mark
+
+A mark is a point of `plotshape()` or `plotchar()` whose value is not `false`, `na` or 0, or a label from `label.new()`. A `plotchar()` with an empty character does not count. Simulated strategy orders do not count.
+
+Darvas reads a mark's direction in this order:
+
+1. Words in its title or text: buy, long, bull, bullish or al for a buy, and sell, short, bear, bearish or sat for a sell. A mark with words of both kinds goes on to the next rule.
+2. Its shape or label style: an up shape is a buy and a down shape is a sell.
+3. Its place: below the bar is a buy and above the bar is a sell.
+
+A mark with no direction matches only **All marks**.
+
+```pine
+//@version=6
+indicator("EMA cross marks", overlay=true)
+fast = ta.ema(close, 9)
+slow = ta.ema(close, 21)
+plotshape(ta.crossover(fast, slow), "Buy", shape.triangleup, location.belowbar, color.green)
+plotshape(ta.crossunder(fast, slow), "Sell", shape.triangledown, location.abovebar, color.red)
+```
+
+## alertcondition() and alert()
+
+- The card lists each `alertcondition()` whose title is a constant string. A title in a variable is not listed.
+- **Any alert() function call** fires on every bar where the script calls `alert()`.
+- The notification carries the alert's message, or the condition's title when the message is empty. Darvas fills these placeholders in `alertcondition()` and `alert()` messages: `{{ticker}}`, `{{exchange}}`, `{{interval}}`, `{{open}}`, `{{high}}`, `{{low}}`, `{{close}}`, `{{volume}}`, `{{time}}`, `{{timenow}}`, `{{syminfo.currency}}`, `{{syminfo.basecurrency}}`, `{{plot_0}}` to `{{plot_19}}` and `{{plot("Title")}}`. Times are in UTC. `{{strategy.*}}` placeholders stay as written.
+- Every frequency works as "once per bar close", because Darvas checks closed candles. A condition that is true only inside a candle, and false at its close, never fires.
+
+## When Darvas checks
+
+- Darvas runs the saved script shortly after each candle closes, on the same 1,000 candles a chart uses, and reads only closed candles.
+- The first check only records the newest mark, so an alert never fires on history.
+- A newer mark sends a notification in the app, as a push notification and on Telegram, if you connected it. The alert stays on after it fires.
+
+## When an alert pauses
+
+Darvas turns an alert off in these cases:
+
+- You can no longer run the indicator, for example because its author stopped sharing it.
+- The script fails on 3 candle closes in a row.
+- The script passes its 10 second run time or its memory on 10 candle closes in a row.
+
+You then get a notice that names the alert, says why it stopped and what turns it back on.

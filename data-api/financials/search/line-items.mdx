@@ -1,0 +1,25 @@
+---
+title: "Line Item Search"
+sidebarTitle: "Line Items"
+description: "Chosen statement fields of up to 100 companies in one request."
+openapi: "data-api/openapi.yaml POST /financials/search/line-items"
+hideApiMarker: true
+---
+
+## Overview
+
+Send the statement fields you need and the companies, and get the newest `limit` periods of each, in the order of the tickers. Any field of the [income statement](/data-api/financials/income-statements), [balance sheet](/data-api/financials/balance-sheets) or [cash flow statement](/data-api/financials/cash-flow-statements) works; `net_income` is the income statement's. A ticker Darvas does not know returns no rows.
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+body = requests.post(
+    "https://darvas.app/api/data/v1/financials/search/line-items",
+    headers=headers,
+    json={"line_items": ["revenue", "free_cash_flow", "total_debt"], "tickers": ["AAPL", "MSFT", "NVDA"], "period": "ttm"},
+).json()
+for row in body["search_results"]:
+    print(row["ticker"], row["report_period"], row["revenue"], row["free_cash_flow"])
+```

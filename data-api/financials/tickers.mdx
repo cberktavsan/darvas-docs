@@ -1,0 +1,20 @@
+---
+title: "Statement Tickers"
+sidebarTitle: "Tickers"
+description: "The companies of the US, UK or French market with annual statements, by ticker, with their CIK or ISIN."
+openapi: "data-api/openapi.yaml GET /financials/income-statements/tickers"
+hideApiMarker: true
+---
+
+Pass `market`: `US` (the default), `UK` or `FR`. US companies come with their CIK; UK and French ones with the ISIN of their main share. A company is `active` while its newest annual report ended in the last two years.
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+url = "https://darvas.app/api/data/v1/financials/income-statements/tickers"
+
+for company in requests.get(url, headers=headers, params={"market": "UK"}).json()["tickers"][:5]:
+    print(company["ticker"], company["name"], company["identifier"])
+```

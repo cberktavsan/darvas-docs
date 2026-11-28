@@ -1,0 +1,42 @@
+---
+title: "SEC Filings"
+sidebarTitle: "SEC Filings"
+description: "Every SEC filing of a company since 1994, newest first, filterable by form."
+openapi: "data-api/openapi.yaml GET /filings"
+hideApiMarker: true
+---
+
+## Overview
+
+The filing list SEC keeps for a company: 10-K, 10-Q, 8-K, proxy statements, ownership forms and every other form, newest first. Each row links the primary document and the filing index on sec.gov.
+
+| Coverage | Details |
+| --- | --- |
+| Filings | 27 million since 1994, delisted companies included |
+| Updated | Within about a minute of SEC acceptance |
+| Page size | 100; `limit` counts across pages, up to 10,000 |
+
+A filing with several parties, such as a Form 4 with its issuer and reporting owner, appears in the list of each. `items` holds the 8-K item numbers, such as `2.02` for results of operations.
+
+## Filtering
+
+- `filing_type`: one or more forms. Repeat the parameter or separate forms with commas: `filing_type=10-K&filing_type=10-Q` or `filing_type=10-K,10-Q`.
+- `limit`: rows across all pages, 10 by default.
+
+## Examples
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+url = "https://darvas.app/api/data/v1/filings"
+
+annual = requests.get(url, headers=headers, params={"ticker": "MSFT", "filing_type": "10-K", "limit": 5}).json()
+for filing in annual["filings"]:
+    print(filing["filing_date"], filing["report_date"], filing["url"])
+
+# Earnings releases are 8-Ks with item 2.02.
+recent = requests.get(url, headers=headers, params={"ticker": "MSFT", "filing_type": "8-K", "limit": 20}).json()
+print([f["filing_date"] for f in recent["filings"] if "2.02" in f["items"]])
+```

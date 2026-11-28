@@ -1,0 +1,34 @@
+---
+title: "Labor Market"
+sidebarTitle: "History"
+description: "24 US labor market series: payrolls since 1939, the household survey, JOLTS and weekly jobless claims."
+openapi: "data-api/openapi.yaml GET /macro/labor"
+hideApiMarker: true
+---
+
+## Overview
+
+One row per period of a series, with its change from the prior period and from a year earlier. Pass `series`; the ids are listed by [Labor Series](/data-api/macro/labor-series).
+
+| Group | Series | Source |
+| --- | --- | --- |
+| Payrolls | `payrolls_sa`, `payrolls_nsa`, `private_payrolls_sa`, `manufacturing_payrolls_sa`, `government_payrolls_sa`, `average_hourly_earnings_sa`, `average_weekly_hours_sa` | BLS establishment survey |
+| Household survey | `unemployment_rate_sa`, `unemployment_rate_nsa`, `u6_rate_sa`, `participation_rate_sa`, `employment_population_ratio_sa`, `labor_force_sa`, `employed_sa`, `unemployed_sa`, `long_term_unemployed_sa` | BLS current population survey |
+| JOLTS | `job_openings_sa`, `job_openings_rate_sa`, `hires_sa`, `quits_sa`, `quits_rate_sa`, `layoffs_sa` | BLS |
+| Jobless claims | `initial_claims_nsa`, `continued_claims_nsa` | Department of Labor ETA 539, weekly, the sum of all states |
+
+Monthly series are dated by the first day of the month, claims by the end of the week. `change_year` compares with 12 months or 52 weeks earlier.
+
+## Example
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+base = "https://darvas.app/api/data/v1/macro"
+
+payrolls = requests.get(f"{base}/labor", headers=headers, params={"series": "payrolls_sa", "start_date": "2026-01-01"}).json()
+for month in payrolls["labor"]:
+    print(month["date"], month["change_prior"], "thousand jobs")
+```

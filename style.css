@@ -1,0 +1,91 @@
+/* Darvas docs. Mintlify loads every .css file in this directory. Colors follow the Darvas
+   palette: black and white controls, no blue or green on buttons. */
+
+/* Full-width layout: the sidebar sits at the left edge and the navbar spans the window. */
+div:has(> #sidebar) {
+  max-width: none !important;
+}
+
+#navbar .max-w-8xl {
+  max-width: none !important;
+}
+
+/* A thin rule between sidebar groups. */
+#navigation-items > div + div {
+  margin-top: 0.875rem;
+  padding-top: 0.875rem;
+  border-top: 1px solid rgb(0 0 0 / 0.08);
+}
+
+:is(.dark, [class~="dark"]) #navigation-items > div + div {
+  border-top-color: rgb(255 255 255 / 0.1);
+}
+
+/* Try it: black on white pages, white on dark ones. */
+.tryit-button {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+.tryit-button:hover {
+  background-color: #2a2a2a !important;
+}
+
+.tryit-button svg {
+  background-color: #ffffff !important;
+}
+
+:is(.dark, [class~="dark"]) .tryit-button {
+  background-color: #ffffff !important;
+  border-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+:is(.dark, [class~="dark"]) .tryit-button:hover {
+  background-color: #d4d4d4 !important;
+}
+
+:is(.dark, [class~="dark"]) .tryit-button svg {
+  background-color: #000000 !important;
+}
+
+/* Method labels in grey instead of green. */
+.method-pill,
+.method-nav-pill > * {
+  background-color: rgb(0 0 0 / 0.08) !important;
+  color: #171717 !important;
+}
+
+:is(.dark, [class~="dark"]) .method-pill,
+:is(.dark, [class~="dark"]) .method-nav-pill > * {
+  background-color: rgb(255 255 255 / 0.12) !important;
+  color: #ededed !important;
+}
+
+/* The request and response examples beside a page: long lines, such as a URL with its query
+   or a filing link, wrap inside the panel instead of running past its edge. Mintlify fixes
+   the column at 28rem; wide screens give it 34rem so most lines fit. */
+#content-side-layout pre,
+#content-side-layout pre code,
+#content-side-layout .whitespace-pre {
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere !important;
+}
+
+#content-side-layout pre {
+  overflow-x: hidden !important;
+}
+
+#content-side-layout pre code {
+  width: auto !important;
+  min-width: 0 !important;
+}
+
+@media (min-width: 1536px) {
+  #content-side-layout,
+  #content-side-layout > div {
+    width: 34rem !important;
+    max-width: 34rem !important;
+  }
+}

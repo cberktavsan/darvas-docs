@@ -1,0 +1,29 @@
+---
+title: "Stock Prices"
+description: "A US stock's daily, weekly, monthly or yearly bars, adjusted for splits."
+openapi: "data-api/openapi.yaml GET /prices"
+hideApiMarker: true
+---
+
+## Overview
+
+Darvas covers every Nasdaq, NYSE, Cboe and OTC stock, each from its first session, and adds the latest bars after each session. A bar is a session's open, high, low, close and volume; `week`, `month` and `year` bars join the sessions of their period, and their `time` is the first session.
+
+Bars are adjusted for splits, so a price before a split compares with one after it. `adjusted_close` is also adjusted for dividends, the figure to use for returns. Today's bar appears after the session closes; the latest price during the session is at [`/prices/snapshot`](/data-api/prices/snapshot).
+
+## Example
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+url = "https://darvas.app/api/data/v1/prices"
+params = {"ticker": "AAPL", "interval": "day", "start_date": "2026-01-02", "end_date": "2026-11-25"}
+
+while url:
+    page = requests.get(url, headers=headers, params=params).json()
+    for bar in page["prices"]:
+        print(bar["time"], bar["close"], bar["adjusted_close"])
+    url, params = page.get("next_page_url"), None
+```

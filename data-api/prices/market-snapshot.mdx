@@ -1,0 +1,25 @@
+---
+title: "Market Snapshot"
+description: "Every US stock's latest price in one answer."
+openapi: "data-api/openapi.yaml GET /prices/snapshot/market"
+hideApiMarker: true
+---
+
+## Overview
+
+The latest price of every stock with a bar in the last ten days, each as [`/prices/snapshot`](/data-api/prices/snapshot) gives it, ordered by ticker. The answer holds about ten thousand stocks.
+
+## Example
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+snapshots = requests.get(
+    "https://darvas.app/api/data/v1/prices/snapshot/market", headers=headers
+).json()["snapshots"]
+movers = sorted(snapshots, key=lambda row: row["day_change_percent"] or 0, reverse=True)[:10]
+for row in movers:
+    print(row["ticker"], row["day_change_percent"])
+```

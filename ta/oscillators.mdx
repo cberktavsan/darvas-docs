@@ -1,0 +1,144 @@
+---
+title: "Oscillators"
+description: "Darvas JavaScript: ta.rsi, ta.macd, ta.stoch, ta.cci, ta.mom, ta.roc and ta.dmi measure momentum, with the exact arguments and return fields of each."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## `ta.rsi(source, length)`: Relative Strength Index
+
+Returns a value from 0 to 100, with Wilder smoothing. By convention, above 70 is overbought and below 30 is oversold.
+
+```js
+hline(70, { color: "#ef4444FF" });
+hline(50, { color: "#6b728060" });
+hline(30, { color: "#22c55eFF" });
+
+plot("RSI", null, { color: "#a78bfaFF" });
+
+onBar(() => {
+  plot("RSI", ta.rsi(ctx.close, 14));
+});
+```
+
+## `ta.macd(source, fast?, slow?, signal?)`: MACD
+
+Returns `{ macd, signal, hist }`. Defaults: `fast = 12`, `slow = 26`, `signal = 9`. `macd` is the fast EMA minus the slow EMA, `signal` is an EMA of `macd`, and `hist` is `macd - signal`.
+
+```js
+plot("MACD",   null, { color: "#22c55eFF" });
+plot("Signal", null, { color: "#f59e0bFF" });
+plot("Hist",   null, { style: "histogram", color: "#a78bfa80" });
+
+onBar(() => {
+  const m = ta.macd(ctx.close, 12, 26, 9);
+  plot("MACD",   m.macd);
+  plot("Signal", m.signal);
+  plot("Hist",   m.hist);
+});
+```
+
+`signal` and `hist` are `NaN` until `signal` bars of `macd` values exist.
+
+## `ta.stoch(source, high, low, length)`: Stochastic %K
+
+Returns %K from 0 to 100, the position of `source` between the lowest `low` and the highest `high` of the last `length` bars. Pass the close, high and low as the first three sources. It returns `NaN` when the high and low of the window are equal.
+
+```js
+plot("Stoch %K", null, { color: "#22c55eFF" });
+plot("Stoch %D", null, { color: "#f59e0bFF" });
+
+const kSeries = Series("stoch-k");
+
+onBar(() => {
+  const k = ta.stoch(ctx.close, ctx.high, ctx.low, 14);
+  kSeries.set(k);
+  plot("Stoch %K", k);
+  plot("Stoch %D", ta.sma(kSeries, 3)); // %D: 3-bar SMA of %K
+});
+```
+
+## `ta.cci(source, high, low, close, length)`: Commodity Channel Index
+
+Returns an unbounded oscillator around 0. The runtime computes the typical price from `high`, `low` and `close`, and it does not read `source`. Pass any source as the first argument, for example `ctx.hlc3`.
+
+```js
+onBar(() => {
+  plot("CCI", ta.cci(ctx.hlc3, ctx.high, ctx.low, ctx.close, 20));
+});
+```
+
+`ta.cci(ctx.hlc3, 20)` passes `20` as `high` and leaves `length` out, so it returns `NaN` on every bar.
+
+## `ta.mom(source, length)`: momentum
+
+The current value minus the value `length` bars ago. Unbounded.
+
+```js
+onBar(() => {
+  plot("Momentum", ta.mom(ctx.close, 10));
+});
+```
+
+## `ta.roc(source, length)`: rate of change
+
+The percentage change from `length` bars ago: `(close - close[length]) / close[length] * 100`. `NaN` when the earlier value is 0.
+
+```js
+onBar(() => {
+  plot("ROC%", ta.roc(ctx.close, 12));
+});
+```
+
+## `ta.dmi(high, low, close, diLength, adxLength)`: Directional Movement Index
+
+Returns `{ plusDI, minusDI, adx }`, the +DI, -DI and ADX values. Both lengths are required. Leaving `adxLength` out throws a `TypeError`. The result has no `plus` or `minus` field.
+
+```js
+plot("+DI", null, { color: "#22c55eFF" });
+plot("-DI", null, { color: "#ef4444FF" });
+plot("ADX", null, { color: "#f59e0bFF" });
+
+onBar(() => {
+  const d = ta.dmi(ctx.high, ctx.low, ctx.close, 14, 14);
+  plot("+DI", d.plusDI);
+  plot("-DI", d.minusDI);
+  plot("ADX", d.adx);
+});
+```
+
+## Hidden state
+
+`ta.macd`, `ta.cci` and `ta.dmi` keep their state in hidden Series, and so do `ta.mfi` and `ta.accdist` on the [volume page](/ta/volume). Each hidden Series counts toward the limit of 64 Series per script.
+
+- The state is keyed by the lengths only. Two calls with the same lengths on different sources share one state and both return wrong values. `ta.macd(ctx.close)` and `ta.macd(ctx.hl2)` in the same script clash. `ta.accdist` has a single state for the whole script.
+- Call these functions on every bar. A bar without a call leaves `NaN` in the hidden Series, which breaks the values of the following bars.
+
+Store one result per bar and reuse it:
+
+```js
+onBar(() => {
+  const m = ta.macd(ctx.close);   // one call per bar
+  plot("MACD", m.macd);
+  plot("Hist", m.hist);
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Moving averages" href="/ta/moving-averages">
+    Trend smoothing functions.
+  </Card>
+  <Card title="Volatility" href="/ta/volatility">
+    ATR, Bollinger Bands and standard deviation.
+  </Card>
+  <Card title="RSI divergence example" href="/examples/rsi-divergence">
+    Full working RSI indicator with divergence detection.
+  </Card>
+  <Card title="MACD histogram example" href="/examples/macd-histogram">
+    Full working MACD implementation.
+  </Card>
+</CardGroup>

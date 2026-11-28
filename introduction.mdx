@@ -1,0 +1,62 @@
+---
+title: "Custom indicators"
+description: "Write your own indicators for Darvas charts in Pine Script v5 or v6, describe one to the Darvas assistant, or paste a TradingView script."
+---
+
+A custom indicator is a Pine Script that Darvas runs on your chart. You can write the script yourself, paste one from TradingView, or describe what you want and let the Darvas assistant write it. Darvas runs Pine v5 and v6 as written and rewrites older versions to v5.
+
+```pine
+//@version=6
+indicator("My indicator", overlay=false)
+len = input.int(14, "Length", minval=1)
+rsi = ta.rsi(close, len)
+plot(rsi, "RSI", color=color.purple, linewidth=2)
+hline(70, "Overbought", color=color.gray)
+hline(30, "Oversold", color=color.gray)
+```
+
+This script is the template a new indicator starts with. It draws a 14-bar RSI in its own pane with lines at 70 and 30.
+
+## What you can do
+
+<CardGroup cols={2}>
+  <Card title="Write or paste Pine Script" icon="code" href="/quickstart">
+    Add a script to the chart, change it and save it.
+  </Card>
+  <Card title="Describe it to Darvas" icon="wand-magic-sparkles" href="/indicators/assistant">
+    The assistant writes the script, tests it on your chart and fixes its own errors.
+  </Card>
+  <Card title="Share it" icon="share-nodes" href="/indicators/sharing">
+    Publish an indicator for every Darvas user, or only for people who know a password.
+  </Card>
+  <Card title="Get alerts" icon="bell" href="/indicators/alerts">
+    Get a notification when the indicator draws a new buy or sell mark.
+  </Card>
+</CardGroup>
+
+## Where a script runs
+
+- A script you have not saved runs in your browser, in a sandboxed frame that has no network access.
+- A saved indicator runs on Darvas servers. That is how an alert can check it while Darvas is closed, and how a shared indicator can hide its code.
+- Every run reads the newest 1,000 candles of the chart.
+
+## Reference
+
+<CardGroup cols={2}>
+  <Card title="Pine Script support" icon="list-check" href="/pine/support">
+    Versions, outputs, strategies and inputs that Darvas runs.
+  </Card>
+  <Card title="Other symbols and data" icon="database" href="/pine/other-data">
+    request.security(), timeframes, company financials and US economic data.
+  </Card>
+  <Card title="Limits" icon="gauge" href="/pine/limits">
+    Run time, bar count, output caps and request limits.
+  </Card>
+  <Card title="The indicator editor" icon="window" href="/editor-walkthrough">
+    Tabs, logs, inputs, versions and drafts.
+  </Card>
+</CardGroup>
+
+<Note>
+  The pages under **Darvas JavaScript** describe a second indicator runtime. The Darvas editor does not offer it, so write new indicators in Pine Script.
+</Note>

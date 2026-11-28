@@ -1,0 +1,23 @@
+---
+title: "Crypto Order Flow"
+sidebarTitle: "Order Flow"
+description: "Buy and sell volume, delta and trade counts per bar, from the minute bars Darvas keeps for 13 months."
+openapi: "data-api/openapi.yaml GET /crypto/order-flow"
+hideApiMarker: true
+---
+
+## Overview
+
+Each minute, Darvas splits an instrument's trades by the taker's side. A bar gives the volume and trade count of each side, the delta (buy volume less sell volume) and the lowest and highest delta reached within the bar. Bars longer than a minute combine the minutes exactly: a 5-minute bar's `min_delta` is the lowest of each minute's extreme plus the delta of the minutes before it.
+
+| Coverage | Details |
+| --- | --- |
+| Venues | OKX and Hyperliquid |
+| History | 13 months |
+| Frames | `minute` × 1, 5, 15, 30; `hour` × 1, 4; `day` × 1 |
+| Page size | 500 bars; pages go back in time from `end_date` |
+
+```bash
+curl -H "X-API-KEY: $DARVAS_API_KEY" \
+  "https://darvas.app/api/data/v1/crypto/order-flow?ticker=BTC-USDT&interval=minute&interval_multiplier=15&start_date=2026-11-25"
+```

@@ -1,0 +1,92 @@
+---
+title: "Market Coverage"
+description: "Every SEC filer since 1994, about 10,000 US stocks, UK and French annual statements, macro series and crypto markets."
+---
+
+| Market | Status | Request with | Periods | Currency |
+| --- | --- | --- | --- | --- |
+| United States | Available | `ticker` or `cik` | Annual, quarterly, TTM | USD |
+| United Kingdom | Available | `ticker` + `market=UK`, or `isin` | Annual | As reported |
+| France | Available | `ticker` + `market=FR`, or `isin` | Annual | As reported |
+| More EU markets | Coming soon | | | |
+
+- **United States**: every SEC filer, active and delisted, with segments, as-reported statements, earnings and KPIs. Statements since 2009, and since 1993 for fiscal years before XBRL.
+- **United Kingdom**: about 800 companies that file a tagged annual report, for years ending since 2020, with as-reported statements.
+- **France**: about 290 companies that file a tagged annual report, for years ending since 2020, with as-reported statements. Amounts are in the reporting currency, EUR for most.
+
+## Companies and filings
+
+| Dataset | Coverage | Updated |
+| --- | --- | --- |
+| Company profiles | Every SEC filer, about 994,000, with their tickers | Within about a minute of a new filing |
+| Ticker history | Current tickers, and tickers of delisted companies since 2006 | Every 6 hours |
+| Filings | 27 million filings since 1994 | Within about a minute of acceptance |
+| Filing items | Every 10-K, 10-Q and 8-K by item, with an 8-K's exhibits | New filings within about a minute, older ones on request |
+| 8-K events | Every 8-K since August 2004, by event type | Within about a minute of acceptance |
+| Earnings | Releases since January 2023, statements since 2009 | Within about a minute of acceptance |
+| KPIs, guidance and non-GAAP metrics | Releases since January 2023, each value with its text | Within about a minute of acceptance |
+| Market news | US federal agency releases since November 2026 | Every ten minutes |
+
+## Financial statements
+
+| Dataset | Coverage | Updated |
+| --- | --- | --- |
+| Income statements, balance sheets, cash flow statements | Every 10-K, 10-Q, 20-F and 40-F with XBRL data, about 20,600 filers since 2009 | Minutes after acceptance |
+| Fiscal years before XBRL | 10-K filings since 1993 whose printed totals agree | Read once |
+| As-reported statements and segments | Every 10-K, 10-Q, 20-F and 40-F with XBRL since June 2009 | Within about a minute of acceptance |
+| Financial metrics, line item search, screener | The same companies; valuation ratios are not available yet | With the statements |
+
+## Ownership and holdings
+
+| Dataset | Coverage | Updated |
+| --- | --- | --- |
+| Insider trades and holdings | Forms 3, 4 and 5 since January 2006 | Within about a minute of acceptance |
+| Insider sale notices | Every Form 144 filed electronically, since April 2023 | Within about a minute of acceptance |
+| 5% owners | Every Schedule 13D and 13G filed in XML, since December 2024 | Within about a minute of acceptance |
+| Institutional holdings | Every 13F-HR since 2013 Q2 | Within about a minute of acceptance |
+| Fund and ETF holdings | Every public N-PORT since 2019 Q4, and every fund share class ticker | Within about a minute of acceptance |
+| IPO filings | Every S-1, F-1 and final prospectus since January 2025 | Within about a minute of acceptance |
+
+## Markets
+
+| Dataset | Coverage | Updated |
+| --- | --- | --- |
+| Stock prices | About 10,000 Nasdaq, NYSE, Cboe and OTC stocks, each from its first session; daily bars adjusted for splits | Bars after each close; session prices every 30 minutes |
+| Dividends and splits | The same stocks, each from its first session: every cash dividend as paid and every split | After each close |
+| Tokenized stocks | About 240 OKX stock perpetual swaps, 11 Bybit xStocks tokens and Coinbase's stock tokens on Base | Prices as they trade |
+| Crypto candles and trades | Every OKX and Hyperliquid instrument; trades for 90 days | Live |
+| Crypto order flow | Minute bars from those trades, 13 months | Every minute |
+| Fails to deliver | Every security with a balance of fails on a day, since July 2009 | Twice a month |
+| Commitments of Traders | About 960 futures markets; legacy since 1986, disaggregated and financial futures since 2006 | Weekly |
+
+## Macro
+
+| Dataset | Coverage | Updated |
+| --- | --- | --- |
+| Policy rates | 31 central banks; the Federal Reserve since 1954 | Hourly |
+| Treasury yield curve | 14 tenors since 1990 | Every 10 minutes |
+| CPI | 12 series since 1947 | Every 10 minutes |
+| PCE prices | 2 series since 1959 | Every 10 minutes |
+| Jobs | 22 series; payrolls since 1939 | Every 10 minutes |
+| Jobless claims | Initial and continued claims since 1986 | Every 10 minutes |
+| Growth and income | 12 series; GDP since 1947 | Every 10 minutes |
+| GPU rental prices | NVIDIA H100, H200, GB200 and A100, AMD MI300X, daily since 26 November 2026 | Hourly |
+
+A revised macro value is added next to the earlier one. Answers carry the current value and `first_published_value`, the first value Darvas recorded. For periods released since 25 November 2026 that is the figure as first released, which backtests need; for earlier periods it is the value on that day.
+
+## Discovering available tickers
+
+Each dataset lists the tickers it answers for under `/tickers`:
+
+```bash
+curl -H "X-API-KEY: $DARVAS_API_KEY" https://darvas.app/api/data/v1/financials/income-statements/tickers
+curl -H "X-API-KEY: $DARVAS_API_KEY" "https://darvas.app/api/data/v1/financials/income-statements/tickers?market=UK"
+curl -H "X-API-KEY: $DARVAS_API_KEY" https://darvas.app/api/data/v1/prices/tickers
+```
+
+Statement tickers carry each company's `identifier`, a CIK for US companies and an ISIN for UK and French ones, and whether it is `active` or `inactive`.
+
+## Share classes and successor issuers
+
+- A US share class takes a dot or a dash, in any case. `BRK.B`, `BRK-B` and `brk.b` all name Berkshire Hathaway's B shares in company lookups, prices, dividends, splits, 13F and fund holdings, and fails to deliver.
+- A successor issuer is a company that takes over another's registration and ticker with an 8-K12B or 8-K12G3. SEC files it under a new CIK and keeps the earlier filings under the old one. Darvas answers the successor with both. ExxonMobil Holdings took over `XOM` from Exxon Mobil in July 2026, so its insider trades and holdings, sale notices, 5% owners, as-reported statements and segments include Exxon Mobil's, each row with the CIK it was filed under. Its standardized statements and metrics carry Exxon Mobil's earlier years.

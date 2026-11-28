@@ -1,0 +1,46 @@
+---
+title: "IPOs"
+sidebarTitle: "IPOs"
+description: "Registration statements and final prospectuses of companies going public, classified, with the proposed ticker, exchange and price range."
+openapi: "data-api/openapi.yaml GET /ipos"
+hideApiMarker: true
+---
+
+## Overview
+
+A company going public files a registration statement with SEC (S-1, or F-1 for a foreign issuer), amends it as the offering takes shape, and files a final prospectus (424B4 or 424B1) once it is priced. Each filing since January 2025 comes here, newest first, classified from its cover page.
+
+| Coverage | Details |
+| --- | --- |
+| Forms | S-1, S-1/A, F-1, F-1/A, 424B4, 424B1 |
+| History | Every such filing since January 2025 |
+| Updated | Within about a minute of acceptance |
+| Page size | 100; `limit` counts across pages, up to 10,000 |
+
+## Classification
+
+| Class | Meaning |
+| --- | --- |
+| `ipo` | An underwritten initial public offering with an exchange listing; `is_ipo_grade` is true |
+| `spac` | A blank check company |
+| `shell_company` | A company that states it is a shell company |
+| `resale` | Selling holders offer shares the company receives no proceeds from |
+| `other` | Follow-on offerings, direct offerings without an underwriter, exchange-traded trusts and the rest |
+
+`ticker`, `exchange` and the price fields are what the cover page states. A first S-1 often leaves the price range blank; a later S-1/A fills it in, and the 424B4 states the final price. Financial statements of the prospectus are not extracted yet: `status` is `classified`, and `has_financial_statements` says whether the document holds them.
+
+## Examples
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+url = "https://darvas.app/api/data/v1/ipos"
+
+upcoming = requests.get(
+    url, headers=headers, params={"classification": "ipo", "filing_date_gte": "2026-10-01", "limit": 50}
+).json()
+for filing in upcoming["ipos"]:
+    print(filing["filing_date"], filing["company_name"], filing["ticker"], filing["price_range_low"], filing["price_range_high"])
+```

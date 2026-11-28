@@ -1,0 +1,29 @@
+---
+title: "Filing Item Types"
+sidebarTitle: "Item Types"
+description: "The items a 10-K, 10-Q and 8-K can have, with their names in /filings/items and their titles."
+openapi: "data-api/openapi.yaml GET /filings/items/types"
+hideApiMarker: true
+---
+
+## Overview
+
+Each form's items, in the order the form lists them: the `name` to send as `item` to [Filing Items](/data-api/filings/items), the item's title in the form, and what it holds. `filing_type` narrows the answer to one form.
+
+The 10-K list includes Item 1C Cybersecurity, required since 2023, and Item 9C on auditors the PCAOB cannot inspect, since 2022. The 8-K list includes Item 1.05 Material Cybersecurity Incidents.
+
+## Example
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+types = requests.get(
+    "https://darvas.app/api/data/v1/filings/items/types",
+    headers=headers,
+    params={"filing_type": "10-Q"},
+).json()
+for item in types["10-Q"]:
+    print(item["name"], item["title"])
+```

@@ -1,0 +1,106 @@
+---
+title: "NaN handling"
+description: "Darvas JavaScript: na(x) tests for undefined, null and NaN, nz(x, fallback) replaces them, and NaN spreads through arithmetic until you stop it."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## The missing-value problem
+
+OHLCV accessors return `undefined` when the bar at the requested offset does not exist, for example `ctx.close(20)` on the first 20 bars. `ta.*` functions return `NaN` until their window has enough bars. Handle both before you use them in further math.
+
+## Function reference
+
+<ParamField path="na(x)" type="boolean">
+  Returns `true` if `x` is `undefined`, `null` or `NaN`. Use it to guard arithmetic.
+  ```js
+  const c = ctx.close(20);
+  if (na(c)) return; // fewer than 21 bars so far
+  ```
+</ParamField>
+
+<ParamField path="na()" type="number">
+  With no argument, `na()` returns `NaN`, the "na" value. It does not test anything, and `if (na())` is never true. Use it where you want to write a missing value, for example `plot("RSI", na())`.
+</ParamField>
+
+<ParamField path="nz(x, fallback?)" type="number">
+  Returns `fallback` if `x` is `undefined`, `null` or `NaN`, and `x` otherwise. `fallback` is `0` when you leave it out.
+  ```js
+  const rsi = ta.rsi(ctx.close, 14);
+  const safe = nz(rsi, 50); // 50 as a neutral value during warmup
+  ```
+</ParamField>
+
+## Why NaN spreads
+
+Any arithmetic that involves `NaN` produces `NaN`:
+
+```js
+NaN + 1           // NaN
+NaN * 0           // NaN
+Math.max(1, NaN)  // NaN
+math.avg(1, NaN)  // NaN
+```
+
+<Note>
+  `NaN === NaN` is `false` in JavaScript, so compare with `na(x)`, never with `=== NaN`. Once a `NaN` enters a calculation, every later result is `NaN`. Use `na(x)` or `nz(x)` to stop it early.
+</Note>
+
+A `NaN` anywhere in a `ta.*` window makes `ta.sma`, `ta.stdev`, `ta.highest`, `ta.lowest` and similar functions return `NaN` until the `NaN` leaves the window.
+
+## Practical patterns
+
+```js
+plot("RSI", null, { color: "#a78bfaFF" });
+
+onBar(() => {
+  const rsi = ta.rsi(ctx.close, 14);
+
+  // Pattern 1: substitute a neutral default
+  const safeRsi = nz(rsi, 50);
+
+  // Pattern 2: plot NaN as an na value
+  plot("RSI", rsi);
+
+  // Pattern 3: stop here if the indicator is not ready
+  if (na(rsi)) return;
+  // code below runs only after the 14-bar warmup
+});
+```
+
+`plot()` accepts `NaN`, `null` and `undefined` as na values. A boolean throws a `TypeError`. A `line` plot joins across na bars, and a `linebr` plot breaks at them. See [plot basics](/plotting/plot-basics#writing-na-values).
+
+## NaN coordinates throw
+
+[Drawing entities](/entities/overview) need finite numbers for their coordinates. When you create an entity with a `NaN` coordinate, the option becomes `null` in the options JSON, and the call throws a `TypeError` that stops the script. Check every coordinate with `na()` before you create the entity.
+
+```js
+onBar(() => {
+  const ph = ta.pivothigh(ctx.high, 5, 5);
+  if (na(ph)) return; // no pivot on this bar, so create no Line
+
+  Line(`ph_${ctx.i()}`, {
+    x1: ctx.i() - 5, y1: ph,
+    x2: ctx.i(),     y2: ph,
+    color: "#22c55eFF",
+  });
+});
+```
+
+In `handle.set()`, a `NaN` coordinate keeps the old value.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Bar context" href="/essentials/bar-context">
+    OHLCV accessors that return undefined for missing bars.
+  </Card>
+  <Card title="Series" href="/essentials/series">
+    Series.get() returns NaN for bars that hold no value.
+  </Card>
+  <Card title="Gotchas" href="/reference/gotchas">
+    Silent NaN propagation and entity coordinate errors.
+  </Card>
+</CardGroup>

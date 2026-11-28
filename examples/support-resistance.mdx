@@ -1,0 +1,88 @@
+---
+title: "Support and resistance"
+description: "Darvas JavaScript: find support and resistance levels with ta.pivothigh and ta.pivotlow, and draw each one as an arrow.right Line with a price Label."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## What this builds
+
+- Automatic swing high and swing low detection
+- A `Line` with `style: "arrow.right"` from each pivot, projected forward
+- A `Label` with the price of each level
+- A cap on the number of levels, which deletes the oldest ones
+
+## Full script
+
+```js
+// overlay = true
+const leftBars  = input.int("Left bars", 5);
+const rightBars = input.int("Right bars", 5);
+const lineLen   = input.int("Line length (bars)", 50);
+const maxLevels = input.int("Max levels per side", 20);
+
+const resistColor  = input.color("Resistance color", "#ef4444CC");
+const supportColor = input.color("Support color",    "#22c55eCC");
+
+// Handles of the drawn levels, oldest first. Top-level arrays persist across bars.
+const highs = [];
+const lows  = [];
+
+function drawLevel(list, side, pivotBar, price, color) {
+  const line = Line(`sr_${side}_${pivotBar}`, {
+    x1: pivotBar,           y1: price,
+    x2: pivotBar + lineLen, y2: price,
+    color: color,
+    style: linestyle.arrow.right,
+  });
+  const label = Label(`sr_${side}_label_${pivotBar}`, {
+    x: pivotBar,
+    y: price,
+    text: str.tostring(price, "#.##"),
+    color: color,
+  });
+  list.push({ line: line, label: label });
+
+  // Keep only the newest maxLevels levels
+  if (list.length > maxLevels) {
+    const oldest = list.shift();
+    oldest.line.delete();
+    oldest.label.delete();
+  }
+}
+
+onBar(() => {
+  const ph = ta.pivothigh(ctx.high, leftBars, rightBars);
+  const pl = ta.pivotlow(ctx.low,   leftBars, rightBars);
+  const pivotBar = ctx.i() - rightBars;
+
+  if (!na(ph)) drawLevel(highs, "high", pivotBar, ph, resistColor);
+  if (!na(pl)) drawLevel(lows,  "low",  pivotBar, pl, supportColor);
+});
+```
+
+## Dynamic keys
+
+Each pivot gets its own key, such as `sr_high_120`, so earlier levels stay on the chart while new ones appear. Without a cap, every pivot of the run adds a Line and a Label. The 501st Line throws a `TypeError` and stops the script, so a long run with small `leftBars` and `rightBars` needs the cap.
+
+## Capping old levels
+
+The script keeps the handles of its levels in an array at the top level. When a side has more than `maxLevels` levels, it deletes the oldest Line and Label. `delete()` frees the slot, so the per-type count stays at `maxLevels`.
+
+The `label` option of `Line` is accepted, but the chart does not draw it. That is why each level gets its own `Label`.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Pivots" href="/ta/pivots">
+    ta.pivothigh and ta.pivotlow, and why they lag.
+  </Card>
+  <Card title="Line entity" href="/entities/line">
+    Full Line options, including the arrow.right style.
+  </Card>
+  <Card title="Label entity" href="/entities/label">
+    The price text on each level.
+  </Card>
+</CardGroup>

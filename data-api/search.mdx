@@ -1,0 +1,36 @@
+---
+title: "Search Filings"
+sidebarTitle: "Search"
+description: "The passages of 10-K, 10-Q and 8-K filings that answer a question, each with a link that opens the filing at it."
+openapi: "data-api/openapi.yaml POST /search"
+hideApiMarker: true
+---
+
+## Overview
+
+Send a question; the answer is the filings that answer it, best first, each with its passages and a citation: the accession number, the day, the item or exhibit, and a link that opens the document with the passage highlighted.
+
+The search reads the items of 10-K, 10-Q and 8-K filings and the press releases of 8-Ks. It matches the question's words, not their meaning: a filing that names more of them, more often, ranks first, and common words such as `what` or `the` are left out. Name the companies in `filters.identifiers` to search their filings of any year; without a company, the last two years are searched.
+
+Darvas reads every new 10-K, 10-Q and 8-K as it is filed, and older ones on request. A company in the filters with no filing read yet has its newest 10-K and 10-Q read at once; `warnings` says so, and the same search a minute later finds them.
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+body = requests.post(
+    "https://darvas.app/api/data/v1/search",
+    headers=headers,
+    json={
+        "query": "What supply chain risks does Apple face?",
+        "filters": {"identifiers": {"ticker": ["AAPL"]}, "document_types": ["10-K"]},
+        "limit": 3,
+    },
+).json()
+for result in body["results"]:
+    print(result["title"])
+    for excerpt in result["excerpts"]:
+        print("  ", excerpt["citation"]["section"], "|", excerpt["text"][:160])
+print(body.get("warnings"))
+```

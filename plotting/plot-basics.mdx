@@ -1,0 +1,113 @@
+---
+title: "Plot basics"
+description: "Darvas JavaScript: plot(name, value, opts) registers a plot and its style at the top level and writes one value per bar inside onBar."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## Signature
+
+```ts
+plot(name, value?, opts?) // returns a handle { id, name }
+```
+
+`plot` is both a **declaration** (top level) and an **emission** (inside `onBar`). The name identifies the plot. The same name ties the declaration to the per-bar writes.
+
+- A top-level call sets the style options. It writes no value.
+- A call inside `onBar` writes the value for the current bar and ignores the options.
+
+## Two-step pattern
+
+```js
+// Step 1: top-level declaration. Register the plot and set its options.
+plot("MA", null, { color: "#22c55eFF", linewidth: 2 });
+
+// Step 2: inside onBar. Write the value of the current bar.
+onBar(() => {
+  plot("MA", ta.sma(ctx.close, 20));
+});
+```
+
+A plot that you only write inside `onBar` still appears, with the default color and width. Declare it at the top level to style it. For a constant level, use [`hline`](/plotting/hline-fill-bgcolor).
+
+## Return value
+
+`plot()` returns a handle `{ id, name }` that you pass to `fill()`:
+
+```js
+const upperPlot = plot("Upper", null, { color: "#22c55eFF" });
+const lowerPlot = plot("Lower", null, { color: "#ef4444FF" });
+fill(upperPlot, lowerPlot, { color: "#22c55e20" });
+```
+
+## Options
+
+Set the options in the top-level call.
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `string` | `"#22c55e"` | Hex color, `#RRGGBB` or `#RRGGBBAA` |
+| `linewidth` | `number` | `1` | Line width in pixels, from 1 to 4. The chart draws a width of 1 at 2 pixels. For `circles`, `cross`, `arrowup` and `arrowdown` it is the mark size, at least 4 |
+| `style` | `string` | `"line"` | See [Plot styles](/plotting/plot-styles) |
+| `linestyle` | `string` | `"solid"` | `"solid"`, `"dashed"` or `"dotted"`, for line and area styles |
+| `histbase` | `number` | `0` | Base value of `histogram`, `columns`, `area` and `areabr` |
+| `join` | `boolean` | `false` | For `circles`, `cross`, `arrowup` and `arrowdown`, also draws a line through the marks |
+| `trackPrice` | `boolean` | `false` | Draws a dotted horizontal price line at the last value |
+| `offset` | `number` | `0` | Shifts the plot by this many bars. A positive offset moves it to the right, past the last bar |
+| `showLast` | `number` | all bars | Draws only the newest N bars |
+| `display` | `string` | `"display.all"` | Where the plot shows. See below |
+
+`colorUp`, `colorDown` and `size` are accepted, but the chart does not read them.
+
+### `display`
+
+`display` is a string, not a boolean:
+
+| Value | Effect |
+| --- | --- |
+| `"display.all"` | Draws the plot and shows its last value on the price scale |
+| `"display.none"` | Hides the plot. `fill()` still reads its values |
+| `"display.pane"` | Draws the plot without the price scale label |
+| `"display.all-display.price_scale"` | Draws the plot without the price scale label |
+
+Join values with `+` or `-`, as in the last row. A value that leaves out the pane, such as `"display.price_scale"`, hides the plot and its label.
+
+## Writing na values
+
+`value` can be a number, `NaN`, `null` or `undefined`. The last three are na values. A boolean throws a `TypeError`.
+
+How the chart draws an na bar depends on the style. A `line`, `stepline` or `area` plot joins across na bars. A `linebr` or `areabr` plot breaks at them. Marker and histogram styles draw nothing for an na bar. To draw a line only on some bars, use `linebr`:
+
+```js
+plot("Extreme RSI", null, { style: "linebr", color: "#f59e0bFF" });
+
+onBar(() => {
+  const rsi = ta.rsi(ctx.close, 14);
+  // Only plot while RSI is overbought or oversold
+  plot("Extreme RSI", rsi > 70 || rsi < 30 ? rsi : NaN);
+});
+```
+
+## Budget
+
+At most **64 plots** per indicator. The `plot()` call that would create a 65th plot stops the run with the error code `INVALID_OUTPUT` and the message "plot cap exceeded (max 64 distinct series per script)".
+
+<Note>
+  `hline`, `fill`, `bgcolor` and `barcolor` have their own limits. See [API limits](/reference/api-limits) for all budgets.
+</Note>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Plot styles" href="/plotting/plot-styles">
+    All 12 style values: line, histogram, area, circles, arrows and the rest.
+  </Card>
+  <Card title="hline, fill, bgcolor" href="/plotting/hline-fill-bgcolor">
+    Horizontal lines, fills and bar colors.
+  </Card>
+  <Card title="API limits" href="/reference/api-limits">
+    The 64-plot budget and other runtime limits.
+  </Card>
+</CardGroup>

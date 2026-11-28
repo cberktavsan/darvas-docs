@@ -1,0 +1,93 @@
+---
+title: "Pine Script support"
+description: "The Pine Script versions, declarations, outputs, strategy features and input types that Darvas runs, and the features it refuses."
+---
+
+Darvas runs Pine Script with [PineTS](https://github.com/LuxAlgo/PineTS), an open-source Pine runtime, and draws the result the way TradingView draws it. This page lists what that covers.
+
+## Versions
+
+| Script | What Darvas does |
+| --- | --- |
+| `//@version=6` or `//@version=5` | Runs the script as written. |
+| `//@version=1` to `//@version=4` | Rewrites the script to v5, then runs it. The rewrite changes namespaces, typed `input()` calls, `transp`, `iff()` and v3 color and style names, and keeps line numbers. The editor shows a note with the original version. |
+| No `//@version` line, with `study(` | Reads the script as v1 and rewrites it. |
+
+A rewrite is syntactic. Where a language rule changed between versions, compare the result with TradingView.
+
+## Declarations
+
+| Declaration | Support |
+| --- | --- |
+| `indicator()` | Runs. |
+| `study()` | Runs as `indicator()`. `resolution=` becomes `timeframe=`. |
+| `strategy()` | Runs. See [Strategies](#strategies). |
+| `library()` and `import` | Refused with "Pine libraries are not supported yet". |
+
+A script without an `indicator()` or `strategy()` declaration fails with an error.
+
+## What the chart draws
+
+- `plot()` with the styles `line`, `linebr`, `stepline`, `stepline_diamond`, `steplinebr`, `histogram`, `columns`, `area`, `areabr`, `circles` and `cross`, and the options `offset`, `show_last`, `trackprice`, `histbase`, `join`, `linestyle`, `format`, `precision`, `display` and `force_overlay`.
+- `hline()`, `fill()` between plots or hlines, including gradient fills, `bgcolor()` and `barcolor()`.
+- `plotshape()`, `plotchar()`, `plotarrow()`, `plotcandle()` and `plotbar()`.
+- `label`, `line`, `box`, `linefill`, `polyline` and `table` drawings, with text, tooltips, arrows and `extend`.
+- `display.none` hides a plot. `scale.left` and `scale.none` place the script on the left scale or on an unlabeled scale of its own.
+
+A `plotchar()` with an empty character, a drawing with an `na` coordinate or color, a polyline with fewer than two points and an empty table draw nothing. When a run passes one of the [output caps](/pine/limits), Darvas leaves the extra items out and writes a warning to the editor's **Logs**.
+
+## Strategies
+
+A `strategy()` script runs, and Darvas places no orders.
+
+- Simulated orders are arrows on the price chart, under the bar for a buy and over it for a sell. Blue marks a long entry, red a short entry and purple an exit. Each arrow shows the order id and the signed size, such as "Long +1".
+- **Backtest** in the chart legend shows the net profit, closed and open trades, win rate, profit factor and max drawdown of the closed trades.
+- Darvas does not show the Strategy Tester's other figures or its trade list.
+- Strategy order alerts do not exist on Darvas, so `{{strategy.*}}` placeholders stay as written.
+
+## Inputs
+
+The inputs dialog has a field for each of these `input.*()` types.
+
+| Type | Field |
+| --- | --- |
+| `input.int`, `input.float`, `input.price` | Number |
+| `input.bool` | Switch |
+| `input.color` | Color picker with an opacity field |
+| `input.source`, `input.enum`, any input with `options` | List |
+| `input.string` | Text |
+| `input.text_area` | Multiline text |
+| `input.time` | Date and time, in your local time |
+| `input.timeframe` | List of Darvas timeframes and the chart's own |
+| `input.session` | Session text, checked as `HHMM-HHMM` with optional weekdays |
+| `input.symbol` | Text with suggestions from the chart's exchange |
+
+Darvas applies these input options:
+
+- `minval` and `maxval` limit the value.
+- `step` sets the step of the number field.
+- `group` puts inputs under a heading, and inputs that share an `inline` id sit on one row.
+- `tooltip` adds an info button next to the input name.
+- `confirm=true` opens the dialog when you add the indicator to a chart. Closing the dialog keeps the defaults.
+- The dialog lists every input whatever its `display` says.
+
+A value that no longer fits the script, such as an input the script removed, is skipped and does not fail the run.
+
+## Logs
+
+`log.info()`, `log.warning()` and `log.error()` write to **Logs** in the editor, with the bar each line came from. Only runs in the editor keep logs. Saved runs, alerts and community indicators keep none.
+
+## Not supported
+
+| Feature | What happens |
+| --- | --- |
+| `library()` and `import` | The script fails with "Pine libraries are not supported yet". |
+| `ticker.renko`, `ticker.kagi`, `ticker.linebreak`, `ticker.pointfigure` | The script fails with a message that names the call. `ticker.heikinashi` works. |
+| A variable named `range`, or `ta.sum` | The script fails, as it does on TradingView. Use `math.sum` instead of `ta.sum`. |
+| The session `2400-0700` | Refused by the runtime. |
+| A symbol Darvas does not list | `request.security()` stops the script. See [Other symbols and data](/pine/other-data). |
+
+## Known differences from TradingView
+
+- `x == (y == z)` loses its parentheses, so `barstate.isfirst == (bar_index == 0)` is false.
+- `ta.supertrend` gives `na` as the direction on its warm-up bars, where TradingView gives 1.

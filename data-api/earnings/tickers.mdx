@@ -1,0 +1,20 @@
+---
+title: "Earnings Tickers"
+sidebarTitle: "Tickers"
+description: "The tickers of companies with earnings filed in the last two years."
+openapi: "data-api/openapi.yaml GET /earnings/tickers"
+hideApiMarker: true
+---
+
+## Overview
+
+Every company with a 10-Q, 10-K or earnings release filed in the last two years, by its current ticker, in order.
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+tickers = requests.get("https://darvas.app/api/data/v1/earnings/tickers", headers=headers).json()["tickers"]
+print(len(tickers), tickers[:10])
+```

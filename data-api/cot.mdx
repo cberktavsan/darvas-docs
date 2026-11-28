@@ -1,0 +1,33 @@
+---
+title: "Commitments of Traders"
+description: "Weekly futures positions by trader group from the CFTC, CME bitcoin and ether included."
+openapi: "data-api/openapi.yaml GET /cot"
+hideApiMarker: true
+---
+
+## Overview
+
+Every week the CFTC publishes the open futures positions of each market by the kind of trader that holds them: the positions of Tuesday, out the Friday after. Darvas reads the three futures-only reports:
+
+| `report` | Groups | Since |
+| --- | --- | --- |
+| `legacy` (default) | `noncommercial`, `commercial`, `non_reportables` | 1986 |
+| `disaggregated` | `producer_merchant`, `swap_dealers`, `managed_money`, `other_reportables`, `non_reportables` | 2006 |
+| `tff`, traders in financial futures | `dealer`, `asset_manager`, `leveraged_funds`, `other_reportables`, `non_reportables` | 2006 |
+
+Name the market by `market_code`, the CFTC's six-character code: [COT Markets](/data-api/cot-markets) finds it by name. CME's bitcoin futures are `133741` and its ether futures `146021`, both in `tff`. Each group carries `long`, `short`, `spread` and `net` in contracts, and the week's change of each; a field the report does not give for a group, such as the spread of commercials, is null.
+
+## Example
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+url = "https://darvas.app/api/data/v1/cot"
+
+weeks = requests.get(url, headers=headers, params={"market_code": "133741", "report": "tff", "limit": 12}).json()
+for week in weeks["cot"]:
+    funds = week["groups"]["leveraged_funds"]
+    print(week["report_date"], funds["net"], funds["change_long"], funds["change_short"])
+```

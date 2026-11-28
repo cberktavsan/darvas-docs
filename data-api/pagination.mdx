@@ -1,0 +1,30 @@
+---
+title: "Pagination"
+description: "How limit, cursor and next_page_url work."
+---
+
+List endpoints return at most one page per request: 100 rows for filings and insider data, 1,000 for macro history.
+
+- `limit` counts rows across all pages. `limit=250` returns three pages of 100, 100 and 50.
+- When more rows remain, the answer has `next_page_url`. Request it as it is; its `cursor` carries every filter of the first request and replaces the other parameters.
+- The last page has no `next_page_url`.
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+url = "https://darvas.app/api/data/v1/insider-trades"
+params = {"ticker": "NVDA", "transaction_type": "Sale", "limit": 500}
+
+trades = []
+while url:
+    page = requests.get(url, headers=headers, params=params).json()
+    trades.extend(page["insider_trades"])
+    url = page.get("next_page_url")
+    params = None  # the cursor in next_page_url holds the filters
+
+print(len(trades))
+```
+
+Macro history pages by date instead of `limit`: send `start_date` and `end_date`, and follow `next_page_url` until it is absent.

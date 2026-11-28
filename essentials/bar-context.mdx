@@ -1,0 +1,138 @@
+---
+title: "Bar context"
+description: "Darvas JavaScript: ctx gives OHLCV values, bar metadata and the bar index for the current bar inside onBar."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## Overview
+
+`ctx` is a global object available everywhere in your script. Inside `onBar` it reflects the current bar. All OHLCV accessors are **functions** that accept an optional `offset` argument, the number of bars to look back from the current bar.
+
+```js
+onBar(() => {
+  const close  = ctx.close();    // current bar close
+  const prev   = ctx.close(1);   // previous bar close
+  const change = close - prev;   // NaN on the oldest bar
+});
+```
+
+At the top level, the accessors read the newest bar of the run.
+
+## Bar metadata
+
+<ParamField path="ctx.length" type="number">
+  Number of bars in the run. A chart run gets at most its newest 1,000 candles.
+</ParamField>
+
+<ParamField path="ctx.bar" type="string">
+  Timeframe string of the chart, for example `"1H"`, `"4H"` or `"1D"`.
+</ParamField>
+
+<ParamField path="ctx.instId" type="string">
+  Instrument id, for example `"BTC-USDT-SWAP"`.
+</ParamField>
+
+<ParamField path="ctx.i()" type="number">
+  Current bar index. `0` is the oldest bar of the run and `ctx.length - 1` is the newest.
+</ParamField>
+
+<ParamField path="ctx.barIndex()" type="number">
+  Alias for `ctx.i()`.
+</ParamField>
+
+<ParamField path="ctx.isLast()" type="boolean">
+  `true` on the newest bar of the run.
+</ParamField>
+
+`ctx` has no other fields. There is no `ctx.tickSize` and no `ctx.atr`.
+
+## OHLCV accessors
+
+Every accessor accepts an optional `offset`, the number of bars back from the current bar. `offset = 0`, the default, is the current bar. `offset = 1` is the previous bar. When the bar at that offset does not exist, the accessor returns `undefined`, not `null`.
+
+<ParamField path="ctx.open(offset?)" type="number | undefined">
+  Open price.
+</ParamField>
+
+<ParamField path="ctx.high(offset?)" type="number | undefined">
+  High price.
+</ParamField>
+
+<ParamField path="ctx.low(offset?)" type="number | undefined">
+  Low price.
+</ParamField>
+
+<ParamField path="ctx.close(offset?)" type="number | undefined">
+  Close price.
+</ParamField>
+
+<ParamField path="ctx.volume(offset?)" type="number | undefined">
+  Volume.
+</ParamField>
+
+<ParamField path="ctx.time(offset?)" type="number | undefined">
+  Bar open time in unix seconds (UTC).
+</ParamField>
+
+## Composite price accessors
+
+<ParamField path="ctx.hl2(offset?)" type="number | undefined">
+  `(high + low) / 2`
+</ParamField>
+
+<ParamField path="ctx.hlc3(offset?)" type="number | undefined">
+  `(high + low + close) / 3`, the typical price.
+</ParamField>
+
+<ParamField path="ctx.ohlc4(offset?)" type="number | undefined">
+  `(open + high + low + close) / 4`
+</ParamField>
+
+## Passing accessors as sources
+
+The accessors are sources. A source is a function called with an offset, `(offset) => number`, or a `Series`. Pass the accessor itself to `ta.*`, not its result:
+
+```js
+const src = input.source("Source", "close");
+
+onBar(() => {
+  // Correct: pass ctx.close as a function reference
+  const rsi = ta.rsi(ctx.close, 14);
+
+  // Correct: input.source returns the same shape
+  const rsi2 = ta.rsi(src, 14);
+
+  // Wrong: ctx.close() is a number, not a source.
+  // ta.rsi(ctx.close(), 14) returns NaN on every bar and logs a warning.
+});
+```
+
+## Example: multi-bar lookback
+
+```js
+plot("3-bar Momentum", null, { color: "#a78bfaFF" });
+
+onBar(() => {
+  const c0 = ctx.close();   // current close
+  const c3 = ctx.close(3);  // close 3 bars ago, undefined on the first 3 bars
+
+  plot("3-bar Momentum", c0 - c3); // NaN on the first 3 bars, where nothing is drawn
+});
+```
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Inputs" href="/essentials/inputs">
+    input.source returns the same function shape.
+  </Card>
+  <Card title="Moving averages" href="/ta/moving-averages">
+    ta.* functions that accept a source parameter.
+  </Card>
+  <Card title="NaN handling" href="/essentials/nan-handling">
+    What to do when ctx.close returns undefined.
+  </Card>
+</CardGroup>

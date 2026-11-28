@@ -1,0 +1,36 @@
+---
+title: "As-Reported Income Statements"
+sidebarTitle: "Income Statements"
+description: "Each period's income statement exactly as the 10-K, 10-Q, 20-F or 40-F presents it."
+openapi: "data-api/openapi.yaml GET /financials/income-statements/as-reported"
+hideApiMarker: true
+---
+
+## Overview
+
+Line items come in the filing's own order and hierarchy, with the company's labels: `label` is what the filing shows, `full_label` the standard label of the XBRL `concept`, and `children` the lines under a heading. Section headers have no `value`. Values are the filing's own period: the balance at its end, the year or quarter of the income statement, and the cash flow statement as presented, which a 10-Q gives year to date. `annual` reads 10-K, 20-F and 40-F filings, `quarterly` 10-Q filings; a period a later filing restated answers with the newest filing.
+
+Darvas reads each filing's own XBRL, newest filings first back to June 2009. IFRS filers present profit or loss in a statement of comprehensive income, which then serves as the income statement. A company that presents a statement with dimensions, such as Berkshire Hathaway's revenues by business group, has those lines without a value.
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+body = requests.get(
+    "https://darvas.app/api/data/v1/financials/income-statements/as-reported",
+    headers=headers,
+    params={"ticker": "AAPL", "period": "annual", "limit": 2},
+).json()
+
+
+def show(lines, depth=0):
+    for line in lines:
+        print("  " * depth + line["label"], line["value"])
+        show(line["children"], depth + 1)
+
+
+for statement in body["income_statements"]:
+    print(statement["fiscal_period"])
+    show(statement["line_items"])
+```

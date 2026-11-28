@@ -1,0 +1,75 @@
+---
+title: "Filing Items"
+sidebarTitle: "Items"
+description: "The text of each item of a 10-K, 10-Q or 8-K, such as Item 1A Risk Factors or Item 2.02 Results of Operations."
+openapi: "data-api/openapi.yaml GET /filings/items"
+hideApiMarker: true
+---
+
+## Overview
+
+A filing cut at its item headings: each item's number, its title as the filing prints it, and its text. An 8-K's exhibits, such as the press release 99.1 of an earnings 8-K, come with the items that name them; Item 9.01 lists them all.
+
+| Coverage | Details |
+| --- | --- |
+| Forms | 10-K (10-K405 included), 10-Q and 8-K, with their amendments by accession number |
+| History | Every such filing on EDGAR |
+| Updated | New filings within about a minute of acceptance; older ones read when a request asks for them |
+
+A 10-K is found by `year`, a 10-Q by `year` and `quarter`: the fiscal year and quarter the filing's financial statements give, so Apple's 10-Q for the quarter ending in December 2025 is `year=2026&quarter=1`. A filing without statements uses the year and calendar quarter its period ends. An 8-K needs its `accession_number`, which `/filings` lists; an accession number also finds a 10-K or 10-Q, amendments included.
+
+Item names follow the forms: `Item-1A` for a 10-K, `Part-1,Item-2` for a 10-Q, `Item-2.02` for an 8-K. [Filing item types](/data-api/filings/item-types) lists them. An 8-K filed before August 2004 uses the old numbering, such as `Item-5` for other events.
+
+## Filings not read yet
+
+Darvas reads every new 10-K, 10-Q and 8-K as EDGAR lists it. An older filing is read when a request asks for it; the request waits up to 8 seconds, then answers `202` with a `result_url`. Poll it after `Retry-After` seconds, or send the same request again: once the filing is read, it answers at once. [Filing items requests](/data-api/filings/items-requests) describes the answers.
+
+## Errors
+
+| Status | `error` | Meaning |
+| --- | --- | --- |
+| 400 | `FILING_TYPE_MISMATCH` | The accession number is another form; the message names it |
+| 400 | `FILING_COMPANY_MISMATCH` | The accession number is another company's; the message names its ticker |
+| 404 | `ITEMS_NOT_FOUND` | An `item` asked for is not in the filing; the message lists the items it has |
+| 404 | `NOT_FOUND` | No such filing, or Darvas found no items in it |
+
+## Examples
+
+```python
+import os
+import time
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+
+
+def filing_items(params):
+    response = requests.get(
+        "https://darvas.app/api/data/v1/filings/items", headers=headers, params=params
+    )
+    if response.status_code != 202:
+        return response.json()
+    result_url = response.json()["result_url"]
+    while True:
+        time.sleep(int(response.headers.get("Retry-After", 5)))
+        response = requests.get(result_url, headers=headers)
+        body = response.json()
+        if body.get("status") != "processing":
+            return body
+
+
+risks = filing_items({"ticker": "AAPL", "filing_type": "10-K", "year": 2025, "item": "Item-1A"})
+print(risks["items"][0]["text"][:500])
+
+# An earnings 8-K and its press release.
+release = filing_items(
+    {
+        "ticker": "AAPL",
+        "filing_type": "8-K",
+        "accession_number": "0000320193-26-000024",
+        "include_exhibits": "true",
+    }
+)
+for item in release["items"]:
+    print(item["number"], item["name"], [e["number"] for e in item.get("exhibits", [])])
+```

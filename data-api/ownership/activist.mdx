@@ -1,0 +1,16 @@
+---
+title: "Activist Ownership"
+sidebarTitle: "Activist Stakes"
+description: "Schedule 13D stakes: owners of more than 5% who may seek to influence control."
+openapi: "data-api/openapi.yaml GET /activist-ownership"
+hideApiMarker: true
+---
+
+## Overview
+
+The 13D rows of [Beneficial Ownership](/data-api/ownership/beneficial), under the key `activist_owners`. A 13D says what the owner intends in `purpose_of_transaction`: board seats, a sale of the company, or plain investment. Amendments follow every material change, so `history=true` shows how a campaign moved.
+
+```bash
+curl -H "X-API-KEY: $DARVAS_API_KEY" \
+  "https://darvas.app/api/data/v1/activist-ownership?ticker=VANI&history=true"
+```

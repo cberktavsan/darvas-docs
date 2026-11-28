@@ -1,0 +1,25 @@
+---
+title: "Stock Price Snapshot"
+description: "A US stock's latest price and its change since the previous close."
+openapi: "data-api/openapi.yaml GET /prices/snapshot"
+hideApiMarker: true
+---
+
+## Overview
+
+During the US session Darvas reads every stock's latest price every half hour, so `price` is up to 30 minutes old. Outside the session it is the last close, and `time` is 16:00 New York time of that day. `day_change` compares `price` with the close of the session before.
+
+## Example
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+snapshot = requests.get(
+    "https://darvas.app/api/data/v1/prices/snapshot",
+    headers=headers,
+    params={"ticker": "AAPL"},
+).json()["snapshot"]
+print(snapshot["price"], snapshot["day_change_percent"])
+```

@@ -1,0 +1,16 @@
+---
+title: "Crypto Price Snapshot"
+sidebarTitle: "Snapshot"
+description: "The newest price of an OKX or Hyperliquid instrument and its change since the UTC day began."
+openapi: "data-api/openapi.yaml GET /crypto/prices/snapshot"
+hideApiMarker: true
+---
+
+## Overview
+
+`price` is the close of the newest minute, including the minute in progress. `day_change` and `day_change_percent` compare it with the open of the current UTC day.
+
+```bash
+curl -H "X-API-KEY: $DARVAS_API_KEY" \
+  "https://darvas.app/api/data/v1/crypto/prices/snapshot?ticker=BTC-USDT"
+```

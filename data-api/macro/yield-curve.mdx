@@ -1,0 +1,32 @@
+---
+title: "Treasury Yield Curve"
+sidebarTitle: "History"
+description: "The daily US Treasury par yield curve since 1990: 14 tenors from 1 month to 30 years."
+openapi: "data-api/openapi.yaml GET /macro/yield-curve"
+hideApiMarker: true
+---
+
+## Overview
+
+One object per business day with a field per tenor, in percent. A tenor that did not exist that day is absent: the 1-month bill starts in 2001, the 20-year bond returns in 1993, the 1.5-month bill starts in 2025.
+
+| Coverage | Details |
+| --- | --- |
+| Tenors | 1, 1.5, 2, 3, 4 and 6 months; 1, 2, 3, 5, 7, 10, 20 and 30 years |
+| History | Since 2 January 1990 |
+| Source | US Treasury daily par yield curve rates |
+| Checked | Every 10 minutes |
+
+## Example
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+base = "https://darvas.app/api/data/v1/macro"
+
+curve = requests.get(f"{base}/yield-curve", headers=headers, params={"start_date": "2026-01-01"}).json()["yield_curve"]
+inverted = [day["date"] for day in curve if day.get("3_month", 0) > day.get("10_year", 0)]
+print(len(inverted), "days with the 3-month yield above the 10-year")
+```

@@ -1,0 +1,13 @@
+---
+title: "Current Interest Rates"
+sidebarTitle: "Snapshot"
+description: "The newest policy rate of every central bank, or of one."
+openapi: "data-api/openapi.yaml GET /macro/interest-rates/snapshot"
+hideApiMarker: true
+---
+
+The newest day of each bank's series, in one call. Pass `bank` for one bank.
+
+```bash
+curl "https://darvas.app/api/data/v1/macro/interest-rates/snapshot" -H "X-API-KEY: $DARVAS_API_KEY"
+```

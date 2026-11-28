@@ -1,0 +1,388 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Darvas",
+  "description": "Darvas documentation: the data API for US company filings, financial statements, insider trades, institutional holdings, prices and macro data, and Pine Script custom indicators for Darvas charts.",
+  "colors": {
+    "primary": "#171717",
+    "light": "#ffffff",
+    "dark": "#000000"
+  },
+  "appearance": {
+    "default": "system",
+    "strict": false
+  },
+  "background": {
+    "color": {
+      "light": "#ffffff",
+      "dark": "#000000"
+    }
+  },
+  "fonts": {
+    "family": "Inter"
+  },
+  "favicon": "/favicon.svg",
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "claude",
+      "chatgpt",
+      "perplexity",
+      "mcp",
+      "cursor",
+      "vscode",
+      "download-spec"
+    ]
+  },
+  "markdown": {
+    "instructions": [
+      "This is the documentation of the Darvas data API and of custom indicators for Darvas charts.",
+      "Every page is listed with a summary in https://docs.darvas.app/llms.txt; any page is Markdown at its URL with .md added. The OpenAPI spec of every endpoint is https://docs.darvas.app/data-api/openapi.yaml.",
+      "Call the API at https://darvas.app/api/data/v1 with the API key in the X-API-KEY header. Name a company by ticker or by CIK; dates are YYYY-MM-DD.",
+      "A list answer holds one page; request its next_page_url as it is until it has none. limit counts rows across all pages.",
+      "Errors are JSON with an error code and a message. A 429 carries Retry-After, the seconds to wait; each key has its own requests per minute.",
+      "The same endpoints are tools at the MCP server https://darvas.app/api/data/v1/mcp, with the same key. https://docs.darvas.app/data-api/ai-agents explains every way an agent can read these docs.",
+      "Custom indicators for Darvas charts are Pine Script v5 or v6 indicator() or strategy() scripts. Start at https://docs.darvas.app/introduction. https://docs.darvas.app/pine/support lists what Darvas runs and https://docs.darvas.app/pine/other-data the data request.security() and request.financial() read.",
+      "Pages whose summary starts with \"Darvas JavaScript\" describe a second runtime that the Darvas editor does not offer. Write new indicators in Pine Script.",
+      "Darvas Pro+ webhooks send a signed POST for alarm fires and pauses, scheduled answers, economic calendar alerts, ETF flow updates, ended connections and the data API events. https://docs.darvas.app/pro/webhooks lists every event, its object and how to verify the Darvas-Signature header."
+    ]
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Overview",
+        "pages": [
+          "overview",
+          "data-api/quickstart",
+          "data-api/authentication",
+          "data-api/mcp",
+          "data-api/ai-agents",
+          "data-api/webhooks",
+          "data-api/pagination",
+          "data-api/coverage"
+        ]
+      },
+      {
+        "group": "Datasets",
+        "pages": [
+          "data-api/company-facts",
+          {
+            "group": "Earnings",
+            "pages": [
+              "data-api/earnings",
+              "data-api/earnings/tickers",
+              "data-api/kpi/metrics",
+              "data-api/kpi/guidance",
+              "data-api/kpi/non-gaap",
+              "data-api/kpi/tickers",
+              "data-api/kpi/sectors"
+            ]
+          },
+          {
+            "group": "SEC Filings",
+            "pages": [
+              "data-api/filings",
+              "data-api/filings/items",
+              "data-api/filings/items-requests",
+              "data-api/filings/item-types",
+              "data-api/filings/events",
+              "data-api/filings/event-types",
+              "data-api/search"
+            ]
+          },
+          "data-api/news",
+          {
+            "group": "Tokenized Stocks",
+            "pages": ["data-api/tokenized-stocks/snapshot", "data-api/tokenized-stocks/list"]
+          },
+          {
+            "group": "Stock Prices",
+            "pages": [
+              "data-api/prices/historical",
+              "data-api/prices/dividends",
+              "data-api/prices/splits",
+              "data-api/prices/snapshot",
+              "data-api/prices/market-snapshot",
+              "data-api/prices/tickers",
+              "data-api/prices/snapshot-tickers"
+            ]
+          },
+          "data-api/fails-to-deliver",
+          {
+            "group": "Commitments of Traders",
+            "pages": ["data-api/cot", "data-api/cot-markets"]
+          },
+          "data-api/insider-trades",
+          "data-api/sale-notices",
+          "data-api/insider-ownership",
+          "data-api/ipos",
+          {
+            "group": "Financial Statements",
+            "pages": [
+              "data-api/financials/income-statements",
+              "data-api/financials/balance-sheets",
+              "data-api/financials/cash-flow-statements",
+              "data-api/financials/all",
+              "data-api/financials/tickers",
+              "data-api/financials/search/line-items",
+              "data-api/financials/search/screener",
+              "data-api/financials/search/screener-filters"
+            ]
+          },
+          {
+            "group": "As-Reported Statements",
+            "pages": [
+              "data-api/financials/as-reported/income-statements",
+              "data-api/financials/as-reported/balance-sheets",
+              "data-api/financials/as-reported/cash-flow-statements",
+              "data-api/financials/as-reported/all"
+            ]
+          },
+          {
+            "group": "Segments",
+            "pages": [
+              "data-api/financials/segments/income-statements",
+              "data-api/financials/segments/balance-sheets",
+              "data-api/financials/segments/cash-flow-statements",
+              "data-api/financials/segments/all"
+            ]
+          },
+          {
+            "group": "Financial Metrics",
+            "pages": [
+              "data-api/financial-metrics/metrics",
+              "data-api/financial-metrics/snapshot",
+              "data-api/financial-metrics/tickers"
+            ]
+          },
+          {
+            "group": "Ownership",
+            "pages": [
+              "data-api/ownership/beneficial",
+              "data-api/ownership/activist"
+            ]
+          },
+          {
+            "group": "Fund Holdings",
+            "pages": [
+              "data-api/funds/holdings",
+              "data-api/funds/tickers"
+            ]
+          },
+          {
+            "group": "Institutional Holdings",
+            "pages": [
+              "data-api/institutional/holdings",
+              "data-api/institutional/investors",
+              "data-api/institutional/tickers"
+            ]
+          },
+          {
+            "group": "Crypto",
+            "pages": [
+              "data-api/crypto/prices",
+              "data-api/crypto/snapshot",
+              "data-api/crypto/trades",
+              "data-api/crypto/order-flow",
+              "data-api/crypto/tickers"
+            ]
+          },
+          {
+            "group": "Interest Rates",
+            "pages": [
+              "data-api/macro/interest-rates",
+              "data-api/macro/interest-rates-snapshot",
+              "data-api/macro/interest-rate-banks"
+            ]
+          },
+          {
+            "group": "Yield Curve",
+            "pages": [
+              "data-api/macro/yield-curve",
+              "data-api/macro/yield-curve-snapshot"
+            ]
+          },
+          {
+            "group": "Inflation",
+            "pages": [
+              "data-api/macro/inflation",
+              "data-api/macro/inflation-snapshot",
+              "data-api/macro/inflation-series"
+            ]
+          },
+          {
+            "group": "Labor Market",
+            "pages": [
+              "data-api/macro/labor",
+              "data-api/macro/labor-snapshot",
+              "data-api/macro/labor-series"
+            ]
+          },
+          {
+            "group": "GDP and Income",
+            "pages": [
+              "data-api/macro/gdp",
+              "data-api/macro/gdp-snapshot",
+              "data-api/macro/gdp-series"
+            ]
+          },
+          {
+            "group": "GPU Rental Prices",
+            "pages": [
+              "data-api/macro/gpu-prices",
+              "data-api/macro/gpu-prices-snapshot",
+              "data-api/macro/gpu-prices-series"
+            ]
+          }
+        ]
+      },
+      {
+        "group": "Darvas Pro+",
+        "pages": ["pro/webhooks"]
+      },
+      {
+        "group": "Custom Indicators",
+        "pages": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "editor-walkthrough"
+            ]
+          },
+          {
+            "group": "Pine Script",
+            "pages": [
+              "pine/support",
+              "pine/other-data",
+              "pine/limits"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "indicators/assistant",
+              "indicators/sharing",
+              "indicators/alerts"
+            ]
+          },
+          {
+            "group": "Darvas JavaScript",
+            "pages": [
+              "javascript/overview",
+              {
+                "group": "Core Concepts",
+                "pages": [
+                  "essentials/script-lifecycle",
+                  "essentials/inputs",
+                  "essentials/bar-context",
+                  "essentials/nan-handling",
+                  "essentials/series"
+                ]
+              },
+              {
+                "group": "Plotting",
+                "pages": [
+                  "plotting/plot-basics",
+                  "plotting/plot-styles",
+                  "plotting/hline-fill-bgcolor"
+                ]
+              },
+              {
+                "group": "Drawing Entities",
+                "pages": [
+                  "entities/overview",
+                  "entities/line",
+                  "entities/box",
+                  "entities/label",
+                  "entities/marker",
+                  "entities/linefill",
+                  "entities/constants"
+                ]
+              },
+              {
+                "group": "Technical Analysis",
+                "pages": [
+                  "ta/moving-averages",
+                  "ta/oscillators",
+                  "ta/volatility",
+                  "ta/aggregators",
+                  "ta/crossovers",
+                  "ta/volume",
+                  "ta/pivots"
+                ]
+              },
+              {
+                "group": "Utility Namespaces",
+                "pages": [
+                  "essentials/math",
+                  "essentials/str",
+                  "essentials/color"
+                ]
+              },
+              {
+                "group": "Examples",
+                "pages": [
+                  "examples/bollinger-bands",
+                  "examples/rsi-divergence",
+                  "examples/support-resistance",
+                  "examples/order-blocks",
+                  "examples/macd-histogram"
+                ]
+              },
+              {
+                "group": "Reference",
+                "pages": [
+                  "reference/api-limits",
+                  "reference/performance",
+                  "reference/gotchas",
+                  "reference/troubleshooting"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "api": {
+    "playground": {
+      "display": "interactive"
+    },
+    "examples": {
+      "languages": [
+        "curl",
+        "python",
+        "javascript"
+      ],
+      "defaults": "required"
+    }
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg",
+    "href": "https://darvas.app"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Support",
+        "href": "mailto:support@darvas.app"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Open Darvas",
+      "href": "https://darvas.app/terminal"
+    }
+  },
+  "footer": {
+    "socials": {
+      "x": "https://x.com/darvasapp",
+      "github": "https://github.com/cberktavsan/darvas-docs"
+    }
+  },
+  "redirects": [{ "source": "/data-api/sources", "destination": "/data-api/coverage" }]
+}

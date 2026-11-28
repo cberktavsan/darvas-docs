@@ -1,0 +1,142 @@
+---
+title: "Entity constants"
+description: "Darvas JavaScript: the linestyle, shape, size, extend, text.align and text.wrap constants name the string values of drawing entity options."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## Overview
+
+The runtime has constant namespaces for entity options. Each constant is a plain string, so `linestyle.solid` and `"solid"` are the same value. A name that is not listed here is `undefined`, and passing `undefined` as an option value leaves the option out.
+
+## `linestyle.*`: line and border styles
+
+| Constant | String value | Used by |
+| --- | --- | --- |
+| `linestyle.solid` | `"solid"` | Line `style`, Box `borderStyle`, plot `linestyle` |
+| `linestyle.dotted` | `"dotted"` | Line `style`, Box `borderStyle`, plot `linestyle` |
+| `linestyle.dashed` | `"dashed"` | Line `style`, Box `borderStyle`, plot `linestyle` |
+| `linestyle.arrow.right` | `"arrow.right"` | Line `style` only |
+| `linestyle.arrow.left` | `"arrow.left"` | Line `style` only |
+| `linestyle.arrow.both` | `"arrow.both"` | Line `style` only |
+
+The arrow constants are nested under `linestyle.arrow`. `linestyle.arrow_right`, `linestyle.arrow_left` and `linestyle.arrow_both` do not exist.
+
+```js
+Line("trend", {
+  x1: 0, y1: 100, x2: 20, y2: 110,
+  style: linestyle.arrow.right,
+  color: "#22c55eFF",
+});
+```
+
+## `shape.*`: marker shapes
+
+| Constant | String value |
+| --- | --- |
+| `shape.circle` | `"circle"` |
+| `shape.square` | `"square"` |
+| `shape.triangle_up` | `"triangle_up"` |
+| `shape.triangle_down` | `"triangle_down"` |
+| `shape.diamond` | `"diamond"` |
+| `shape.cross` | `"cross"` |
+| `shape.x` | `"x"` |
+| `shape.arrow_up` | `"arrow_up"` |
+| `shape.arrow_down` | `"arrow_down"` |
+
+The chart draws `triangle_up`, `triangle_down`, `arrow_up` and `arrow_down` as an X shape. See [Marker](/entities/marker).
+
+```js
+Marker("signal", {
+  x: ctx.time(), y: ctx.low(),
+  shape: shape.diamond,
+  color: "#22c55eFF",
+});
+```
+
+## `size.*`: Box text sizes
+
+These strings are for the Box `textSize` option. Label `size` is a number of pixels, and Marker `size` is not drawn.
+
+| Constant | String value | Font size |
+| --- | --- | --- |
+| `size.xs` | `"xs"` | 8 px |
+| `size.sm` | `"sm"` | 10 px |
+| `size.md` | `"md"` | 12 px |
+| `size.lg` | `"lg"` | 16 px |
+| `size.xl` | `"xl"` | 24 px |
+| `size.auto` | `"auto"` | Chosen by the chart (default) |
+
+```js
+Box("zone", {
+  x1: 0, y1: 100, x2: 10, y2: 110,
+  color: "#22c55e20",
+  text: "Demand",
+  textSize: size.sm,
+});
+```
+
+## `extend.*`: Box extension
+
+| Constant | String value | Effect |
+| --- | --- | --- |
+| `extend.none` | `"none"` | No extension (default) |
+| `extend.left` | `"left"` | Extends to the left edge of the chart |
+| `extend.right` | `"right"` | Extends to the right edge of the chart |
+| `extend.both_x` | `"both_x"` | Extends to both edges |
+| `extend.up` | `"up"` | Accepted, not drawn |
+| `extend.down` | `"down"` | Accepted, not drawn |
+| `extend.both_y` | `"both_y"` | Accepted, not drawn |
+
+```js
+Box("supply", {
+  x1: 5, y1: 105, x2: 10, y2: 110,
+  extend: extend.right, // the box runs on to the right edge
+  color: "#ef444420",
+});
+```
+
+## `text.align.*`: horizontal text alignment
+
+| Constant | String value |
+| --- | --- |
+| `text.align.left` | `"left"` |
+| `text.align.center` | `"center"` |
+| `text.align.right` | `"right"` |
+
+Use them for Box `textHAlign` and Label `textAlign`. For Box `textVAlign`, write `"top"`, `"center"` or `"bottom"` as strings. `text.align.top` and `text.align.bottom` do not exist.
+
+```js
+Box("zone", {
+  x1: 0, y1: 100, x2: 10, y2: 110,
+  color: "#a78bfa20",
+  text: "FVG",
+  textHAlign: text.align.right,
+  textVAlign: "top",
+});
+```
+
+## `text.wrap.*`: text wrapping
+
+| Constant | String value |
+| --- | --- |
+| `text.wrap.none` | `"none"` |
+| `text.wrap.auto` | `"auto"` |
+
+Use them for Box `textWrap`.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Line" href="/entities/line">
+    Uses linestyle.* for the style option.
+  </Card>
+  <Card title="Box" href="/entities/box">
+    Uses extend.*, size.*, text.align.* and text.wrap.*.
+  </Card>
+  <Card title="Marker" href="/entities/marker">
+    Uses shape.* for the shape option.
+  </Card>
+</CardGroup>

@@ -1,0 +1,30 @@
+---
+title: "Fails to Deliver"
+description: "Shares that failed to settle each day, with the closing price of the day before, from SEC."
+openapi: "data-api/openapi.yaml GET /fails-to-deliver"
+hideApiMarker: true
+---
+
+## Overview
+
+SEC publishes the shares of each security that failed to settle on each day, all clearing members together, twice a month: the first half of a month about two weeks after it ends, the second half about two weeks later. Darvas reads every file since 2009 and each new one within a day.
+
+| Ask with | Answer |
+| --- | --- |
+| `ticker` | The security's settlement days, newest first; `settlement_date_gte` and the other range filters narrow them |
+| `settlement_date` alone | That day's securities, largest `value` first |
+
+`price` is the security's closing price on the day before, as SEC gives it, and `value` is `quantity` times `price`. Since 16 September 2008 SEC lists every security with a balance of fails on a day, so a day missing from the answer had none; before that date only balances of 10,000 shares or more were listed, and the files Darvas reads begin in July 2009. `quantity` is the balance outstanding that day across the whole market, not the day's new fails: SEC notes that the age of fails cannot be read from it, and that fails are not necessarily the result of short selling.
+
+## Example
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+url = "https://darvas.app/api/data/v1/fails-to-deliver"
+
+for day in requests.get(url, headers=headers, params={"ticker": "GME", "limit": 20}).json()["fails_to_deliver"]:
+    print(day["settlement_date"], day["quantity"], day["value"])
+```

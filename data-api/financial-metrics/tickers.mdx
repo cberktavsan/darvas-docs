@@ -1,0 +1,11 @@
+---
+title: "Financial Metrics Tickers"
+sidebarTitle: "Tickers"
+description: "Every company with a trailing twelve months ending in the last 400 days."
+openapi: "data-api/openapi.yaml GET /financial-metrics/snapshot/tickers"
+hideApiMarker: true
+---
+
+## Overview
+
+The companies the [snapshot](/data-api/financial-metrics/snapshot) serves, by their current ticker, with their name and CIK. A company whose newest trailing twelve months ends more than 400 days ago, such as one that stopped filing, is left out.

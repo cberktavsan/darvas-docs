@@ -1,0 +1,70 @@
+---
+title: "Income Statements"
+sidebarTitle: "Income Statements"
+description: "Revenue, expenses, earnings and per share figures of a company, by fiscal year, quarter or trailing twelve months."
+openapi: "data-api/openapi.yaml GET /financials/income-statements"
+hideApiMarker: true
+---
+
+## Overview
+
+Standardized income statements of US-listed companies and foreign companies filing with SEC, under the same field names for every company. Each 10-K, 10-Q, 20-F and 40-F with XBRL data since 2009 gives the rows of its own period.
+
+| Coverage | Details |
+| --- | --- |
+| Companies | About 20,600 XBRL filers |
+| History | Every 10-K, 10-Q, 20-F and 40-F with XBRL since 2009; fiscal years back to 1993 from older 10-Ks |
+| Periods | `annual`, `quarterly`, `ttm` |
+| Updated | Minutes after acceptance, once SEC's XBRL API shows the filing; at the latest from SEC's nightly file |
+| Page size | 10 periods; `limit` counts across pages, up to 400 |
+
+## How the statements are built
+
+- Values come from SEC's XBRL company facts: the numbers each filing tags under the US GAAP or IFRS taxonomy. A field maps to the tags filers use for it, in order of preference; `ebit`, `free_cash_flow` and a few totals are computed from other fields when the filing does not tag them.
+- A quarter that a 10-Q reports only year to date is the difference of two year-to-date values. The fourth quarter is the fiscal year less its first nine months, and its row carries the 10-K. Share counts are never subtracted, so a derived fourth quarter has no weighted average shares.
+- `ttm` adds the four quarters that end on its date; balance sheet values and share counts are those of its last quarter, and `form_type` is null.
+- Each row uses the facts known when its filing was made. A period that a later filing restated answers with the newest filing; with a `filing_date` filter, with the newest one filed within it. `filing_date_lte` therefore gives what was public on a day.
+- Every row is checked against the totals its filing reports: assets against liabilities and equity, gross profit against revenue less cost of revenue, the change in cash against the three cash flows.
+
+Values are in `currency`, as filed. A field the filing does not report is null.
+
+Fiscal years before XBRL come from the 10-K's own tables, plain text or HTML, read without a model: a table reaches the API only when the totals it prints agree, and its cash flow statement must start from its income statement's net income. These years have no quarters or trailing twelve months, and fewer fields than the XBRL years.
+
+## UK and French companies
+
+Listed companies in the UK and France file their annual report as XBRL under ESEF, or UKSEF in the UK. Darvas reads every such report for the years ending since 2020 and builds its fiscal year by the same rules as the US statements. Name the company by `ticker` and `market`, or by `isin`:
+
+| Parameter | Example | Notes |
+| --- | --- | --- |
+| `market` | `UK`, `FR` | `exchange=LSE` is a deprecated alias of `market=UK` |
+| `ticker` | `RR.`, `BT.A`, `MC` | London tickers keep the exchange's spelling; `RR` finds `RR.` too |
+| `isin` | `GB00B63H8491` | Any share of the company, instead of `ticker` and `market` |
+
+These companies carry `annual` periods only; `quarterly` and `ttm` answer 400. Values are in the report's currency, mostly GBP or EUR. `accession_number` and `filing_datetime` are null, `form_type` is `ESEF` or `UKSEF`, and `filing_url` opens the report in an online viewer. [Statement Tickers](/data-api/financials/tickers) lists each market's companies.
+
+A company found by its ISIN needs a share traded in the EU, and one found by its ticker a London or Paris listing. A company that only lists bonds has statements but no ticker or ISIN to find them by.
+
+## Known gaps
+
+- SEC's company facts hold no values with dimensions, so a figure a company reports only per share class or per segment, such as Berkshire Hathaway's earnings per Class A share, is null.
+- SEC's company facts sometimes miss the IFRS values of a 20-F; those periods are absent until SEC adds them.
+- Not every French report is available: about 290 French companies since 2020.
+
+## Examples
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+url = "https://darvas.app/api/data/v1/financials/income-statements"
+
+quarters = requests.get(url, headers=headers, params={"ticker": "NVDA", "period": "quarterly", "limit": 8}).json()
+for row in quarters["income_statements"]:
+    print(row["fiscal_period"], row["revenue"], row["earnings_per_share_diluted"])
+
+# The statements as they were known on 1 February 2026.
+as_of = requests.get(
+    url, headers=headers, params={"ticker": "AAPL", "period": "ttm", "filing_date_lte": "2026-02-01", "limit": 1}
+).json()
+```

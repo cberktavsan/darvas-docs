@@ -1,0 +1,37 @@
+---
+title: "Financial Metrics"
+sidebarTitle: "Metrics"
+description: "Profitability, efficiency, liquidity, leverage, growth and per share ratios of a company per period."
+openapi: "data-api/openapi.yaml GET /financial-metrics"
+hideApiMarker: true
+---
+
+## Overview
+
+Ratios computed from the [standardized statements](/data-api/financials/income-statements), one row per fiscal year, quarter or trailing twelve months, with the statement's filing metadata.
+
+| Group | Ratios | How |
+| --- | --- | --- |
+| Profitability | `gross_margin`, `operating_margin`, `net_margin`, `return_on_equity`, `return_on_assets`, `return_on_invested_capital` | Over revenue, period-end equity, period-end assets, and debt plus equity less cash |
+| Efficiency | `asset_turnover`, `inventory_turnover`, `receivables_turnover`, `days_sales_outstanding`, `operating_cycle`, `working_capital_turnover` | Over the average of the period's balance and the previous one |
+| Liquidity and leverage | `current_ratio`, `quick_ratio`, `cash_ratio`, `operating_cash_flow_ratio`, `debt_to_equity`, `debt_to_assets`, `interest_coverage` | At the period end |
+| Growth | `revenue_growth`, `earnings_growth`, `book_value_growth`, `earnings_per_share_growth`, `free_cash_flow_growth`, `operating_income_growth`, `ebitda_growth` | Against the same period a year earlier, over the size of the earlier value |
+| Per share | `earnings_per_share`, `book_value_per_share`, `free_cash_flow_per_share`, `payout_ratio` | Over period-end shares outstanding |
+
+Ratios are fractions: a 46% margin is `0.46`. A quarter's ratios use the quarter alone and are not annualized; use `period=ttm` for yearly ratios at every quarter end. A ratio whose inputs the filing does not report is null.
+
+Valuation ratios (`enterprise_value`, `price_to_earnings_ratio`, `price_to_book_ratio`, `price_to_sales_ratio`, `enterprise_value_to_ebitda_ratio`, `enterprise_value_to_revenue_ratio`, `free_cash_flow_yield`, `peg_ratio`) need a share price and are null until Darvas stores stock prices.
+
+```python
+import os
+import requests
+
+headers = {"X-API-KEY": os.environ["DARVAS_API_KEY"]}
+metrics = requests.get(
+    "https://darvas.app/api/data/v1/financial-metrics",
+    headers=headers,
+    params={"ticker": "AAPL", "period": "ttm", "limit": 8},
+).json()
+for row in metrics["financial_metrics"]:
+    print(row["report_period"], row["gross_margin"], row["return_on_equity"], row["revenue_growth"])
+```

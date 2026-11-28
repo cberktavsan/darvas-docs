@@ -1,0 +1,16 @@
+---
+title: "Stock Price Tickers"
+description: "The US stocks with prices."
+openapi: "data-api/openapi.yaml GET /prices/tickers"
+hideApiMarker: true
+---
+
+## Overview
+
+The tickers [`/prices`](/data-api/prices/historical) answers, in order. `/prices/snapshot/tickers` gives the same list for [`/prices/snapshot`](/data-api/prices/snapshot), since every stock with bars has a snapshot.
+
+## Example
+
+```bash
+curl -H "X-API-KEY: $DARVAS_API_KEY" https://darvas.app/api/data/v1/prices/tickers
+```

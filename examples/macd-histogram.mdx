@@ -1,0 +1,96 @@
+---
+title: "MACD histogram"
+description: "Darvas JavaScript: a standard MACD with MACD and signal lines, and a histogram split into two plots for green and red bars."
+---
+
+<Note>
+  This page belongs to the Darvas JavaScript reference. The Darvas editor writes indicators in Pine Script, and it does not offer Darvas JavaScript. To write an indicator, start with [custom indicators](/introduction).
+</Note>
+
+## What this builds
+
+- The MACD line, fast EMA minus slow EMA
+- The signal line, an EMA of the MACD line
+- The histogram, MACD minus signal, in green above zero and red below
+- A zero line
+
+## Full script
+
+```js
+const fastLen = input.int("Fast length",   12);
+const slowLen = input.int("Slow length",   26);
+const sigLen  = input.int("Signal length",  9);
+const src     = input.source("Source", "close");
+
+plot("Hist up",   null, { style: "histogram", color: "#22c55eCC" });
+plot("Hist down", null, { style: "histogram", color: "#ef4444CC" });
+plot("MACD",      null, { color: "#3b82f6FF", linewidth: 2 });
+plot("Signal",    null, { color: "#f59e0bFF", linewidth: 2 });
+
+hline(0, { color: "#6b728060" });
+
+onBar(() => {
+  const m = ta.macd(src, fastLen, slowLen, sigLen);
+
+  plot("MACD",      m.macd);
+  plot("Signal",    m.signal);
+  plot("Hist up",   m.hist >= 0 ? m.hist : NaN);
+  plot("Hist down", m.hist < 0 ? m.hist : NaN);
+});
+```
+
+## Why two histogram plots
+
+A plot draws every bar in its one `color`. `colorUp` and `colorDown` are accepted, but the chart does not read them. To color bars by sign, write each bar to one of two plots and `NaN` to the other. A histogram draws nothing for a `NaN` bar.
+
+## Four-shade histogram
+
+Store the histogram in a Series to compare it with the previous bar. Bars that grow get the strong shade and bars that shrink get the faint one:
+
+```js
+const histSeries = Series("macd-hist");
+
+plot("Up strong",   null, { style: "histogram", color: "#22c55eFF" });
+plot("Up faint",    null, { style: "histogram", color: "#22c55e66" });
+plot("Down strong", null, { style: "histogram", color: "#ef4444FF" });
+plot("Down faint",  null, { style: "histogram", color: "#ef444466" });
+
+onBar(() => {
+  const { hist } = ta.macd(ctx.close, 12, 26, 9);
+  histSeries.set(hist);
+  const growing = Math.abs(hist) > Math.abs(histSeries.get(1));
+
+  plot("Up strong",   hist >= 0 && growing  ? hist : NaN);
+  plot("Up faint",    hist >= 0 && !growing ? hist : NaN);
+  plot("Down strong", hist < 0 && growing   ? hist : NaN);
+  plot("Down faint",  hist < 0 && !growing  ? hist : NaN);
+});
+```
+
+## Understanding the return value
+
+`ta.macd` returns an object with three fields:
+
+| Field | Description |
+| --- | --- |
+| `macd` | Fast EMA minus slow EMA |
+| `signal` | EMA of `macd` over `sigLen` bars |
+| `hist` | `macd` minus `signal` |
+
+`macd` is `NaN` for the first `slowLen - 1` bars. `signal` and `hist` are `NaN` for the first `slowLen + sigLen - 2` bars.
+
+Call `ta.macd` once per bar with fixed arguments. Its hidden state is keyed by the fast and slow lengths, so a second call with the same lengths on another source returns wrong values. See [hidden state](/ta/oscillators#hidden-state).
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Oscillators" href="/ta/oscillators">
+    ta.macd reference and the hidden state rules.
+  </Card>
+  <Card title="Plot styles" href="/plotting/plot-styles">
+    The histogram style and how it draws NaN bars.
+  </Card>
+  <Card title="Series" href="/essentials/series">
+    Compare the histogram with the previous bar.
+  </Card>
+</CardGroup>
